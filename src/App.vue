@@ -10,6 +10,7 @@
 </template>
 <script>
   import EditorImg from '@/components/editor-img/index.vue'
+  // import EditorImg from '@/components/fabric.vue'
   export default {
     components: {
       EditorImg

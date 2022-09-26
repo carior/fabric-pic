@@ -43,7 +43,7 @@ export const tpls = {
                 selectable: false // 背景图不可选择
             }, 
             {
-                "type": "i-text", 
+                "type": "textbox", 
                 "version": "4.5.1", 
                 "originX": "left", 
                 "originY": "top", 
@@ -74,7 +74,7 @@ export const tpls = {
                 "globalCompositeOperation": "source-over", 
                 "skewX": 0, 
                 "skewY": 0, 
-                "text": "H5-Dooring", 
+                "text": "示例书名",
                 "fontSize": 40, 
                 "fontWeight": "normal", 
                 "fontFamily": "Times New Roman", 
@@ -91,7 +91,7 @@ export const tpls = {
                 "styles": { }
             }, 
             {
-                "type": "i-text", 
+                "type": "textbox", 
                 "version": "4.5.1", 
                 "originX": "left", 
                 "originY": "top", 
@@ -122,8 +122,8 @@ export const tpls = {
                 "globalCompositeOperation": "source-over", 
                 "skewX": 0, 
                 "skewY": 0, 
-                "text": "H5-Dooring", 
-                "fontSize": 40, 
+                "text": "作者名称", 
+                "fontSize": 28, 
                 "fontWeight": "normal", 
                 "fontFamily": "Times New Roman", 
                 "fontStyle": "normal", 

@@ -255,6 +255,7 @@
             fill: "#000000",
             textBackgroundColor: "rgba(0,0,0,0)",
             selectable: true,
+            underline:true
           },
           isOpen: false,
           isMove: false,
