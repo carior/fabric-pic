@@ -9,22 +9,24 @@
   </div>
 </template>
 <script>
-  import EditorImg from '@/components/editor-img/index.vue'
-  // import EditorImg from '@/components/fabric.vue'
-  export default {
-    components: {
-      EditorImg
-    }
-  }
+import EditorImg from "@/components/editor-img/index.vue";
+// import EditorImg from '@/components/fabric.vue'
+// import EditorImg from '@/components/fabric_origin.vue'
+export default {
+  components: {
+    EditorImg,
+  },
+};
 </script>
 <style>
-  * {
-    padding: 0;
-    margin: 0;
-  }
-  ul,li {
-    list-style-type: none;
-  }
+* {
+  padding: 0;
+  margin: 0;
+}
+ul,
+li {
+  list-style-type: none;
+}
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
