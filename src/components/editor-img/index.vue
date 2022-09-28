@@ -104,6 +104,13 @@
         </el-popover>
         <i class="el-icon-caret-right" @click="zoomIt('big')"></i>
       </div>
+      <div
+        class="angle-box"
+        :style="{ left: angleBox.left + 'px', top: angleBox.top + 'px' }"
+        v-if="showAngle"
+      >
+        {{ angleBox.angle }}°
+      </div>
     </div>
     <div class="right-box">
       <div class="pic-detail" v-if="activeType == 'tpl'">
@@ -163,7 +170,7 @@
               <c-progress
                 class="c-progress"
                 :percent="70"
-                @percentChange="change_letterSpace"
+                @percentChange="change_charSpacing"
               />
               <el-tag slot="reference" class="font-set">字间距</el-tag>
             </el-popover>
@@ -197,6 +204,8 @@
 <script>
 import rotate from "@/assets/images/rotate.png";
 import defaultImg from "@/assets/images/default-book-cover.png";
+let rotateImgUrl =
+  "url(https://titan-img.meitudata.com/xiuxiu-pc/img/svg/mouse-icon-rotate-0.svg) 12 12,auto";
 //     https://s1.ax1x.com/2022/09/22/xFB7lQ.jpg
 // https://s1.ax1x.com/2022/09/22/xFBHyj.jpg
 // https://s1.ax1x.com/2022/09/22/xFBIfS.jpg
@@ -266,7 +275,7 @@ export default {
           name: "滤镜",
         },
       },
-      activeType: "tpl",
+      activeType: "itext",
       fontFamilies,
       fontSizes,
       fontColor,
@@ -278,7 +287,7 @@ export default {
         undeline: false,
         bold: false,
         alignItem: "center",
-        letterSpace: 6,
+        charSpacing: 6,
         lineHeight: 1.5,
       },
       predefineColors: [
@@ -306,7 +315,9 @@ export default {
         type: "editText",
         top: 50,
         left: 50,
-        width: 100,
+        width: 241,
+        height: 46,
+        splitByGrapheme: true, // 拆分中文，可以实现自动换行
         opacity: 1,
         textAlign: "left",
         lineHeight: 1,
@@ -316,7 +327,6 @@ export default {
         fontWeight: "normal",
         fontStyle: "normal",
         textBackgroundColor: "rgba(0,0,0,0)",
-        // splitByGrapheme: true, // 拆分中文，可以实现自动换行
         // hasControls: true
       },
       zoomCounter: 100, // 画布缩放的尺寸
@@ -343,6 +353,12 @@ export default {
         { label: "实际大小", value: "actual" },
         { label: "适应屏幕", value: "auto" },
       ],
+      showAngle: false,
+      angleBox: {
+        left: 0,
+        top: 0,
+        angle: 0,
+      },
     };
   },
   components: {
@@ -370,11 +386,17 @@ export default {
             width: imgdefault.width * scale,
             height: 800,
           });
-        //   editorCanvas.hoverCursor = "defalut"; //悬浮光标改成手型
+          editorCanvas.preserveObjectStacking = true; // 保持原有层级
+          //   editorCanvas.hoverCursor = "defalut"; //悬浮光标改成手型
           img.scale(scale);
           img.set("selectable", false); // 背景图不可选择
           const imgInstance = editorCanvas.add(img); // 添加背景图
           imgInstance.renderAll();
+
+          this.on_mouse_down(editorCanvas); // 绑定点击新增文字事件
+          this.on_mouse_move(editorCanvas); // 绑定点击新增文字事件
+          this.on_mouse_up(editorCanvas); // 绑定点击新增文字事件
+          this.on_mouse_rotate(editorCanvas); // 绑定点击新增文字事件
         });
       };
     },
@@ -397,24 +419,25 @@ export default {
       fabric.Object.prototype.controls.mtr.withConnection = false;
       fabric.Object.prototype.cornerSize = 10;
       // 单独修改旋转控制点距离主体的纵向距离为-20px
-      fabric.Object.prototype.controls.mtr.offsetY = -20;
+      //   fabric.Object.prototype.controls.mtr.offsetY = -20;
       fabric.Object.prototype.setControlsVisibility({
         mb: false, // 下中
         mt: false, // 上中
       });
+      console.log(fabric.Object.prototype);
       // 旋转按钮图标修改
       fabric.Object.prototype.controls.mtr =
         fabric.Textbox.prototype.controls.mtr = new fabric.Control({
           x: 0,
-          y: -0.5,
-          offsetY: -20,
-          cursorStyle: "pointer",
+          y: 0.5, // 这里x y 的正负值代表4个角
+          offsetY: 20,
+          cursorStyle: rotateImgUrl,
           actionHandler: fabric.controlsUtils.rotationWithSnapping,
           cursorStyleHandler: fabric.controlsUtils.rotationStyleHandler,
           // 渲染图标
-          render: (...args) => this.renderIcon(...args, rotateImg, 0),
-          // 设置控制点大小
-          cornerSize: 30,
+          render: (...args) => this.renderIcon(...args, rotateImg),
+          cornerSize: 22,
+          actionName: "rotate",
         });
       // 修改删除按钮图标
       fabric.Object.prototype.controls.deleteControl =
@@ -426,7 +449,6 @@ export default {
           mouseUpHandler: this.deleteObject,
           render: (...args) => this.renderIcon(...args, deleteImg),
           cornerSize: 24,
-          withConnection: false,
         });
     },
     // 修改类型
@@ -476,18 +498,26 @@ export default {
       }
     },
     // 修改字间距 TODO 截流
-    change_letterSpace(per) {
+    change_charSpacing(per) {
+      // 1 == 0.6px
       const obj = editorCanvas.getActiveObject();
       if (obj) {
-        obj.set("charSpacing", per);
+        const fontSize = obj.fontSize;
+        const charSpacing = ((per * 0.6) / fontSize) * 1000;
+        console.log(charSpacing);
+        console.log(charSpacing / 1000 + "em");
+        console.log((charSpacing / 1000) * 40 + "px");
+        obj.set("charSpacing", charSpacing);
         editorCanvas.renderAll();
       }
     },
     // 修改行间距 TODO 截流
     change_lineHeight(per) {
       const obj = editorCanvas.getActiveObject();
+      const base = 1.2;
       if (obj) {
-        obj.set("lineHeight", per);
+        const lineHeight = base + per / 100;
+        obj.set("lineHeight", lineHeight);
         editorCanvas.renderAll();
       }
       console.log(obj, "change_lineHeight");
@@ -518,24 +548,42 @@ export default {
     },
     // 字体方向切换 TODO方式要改
     changeFontDir() {
+      // writing-mode: vertical-rl; 竖排
+      // horizontal-tb // 横向
+
       let { fontDir } = this.textForm;
       const obj = editorCanvas.getActiveObject();
       console.log(obj, "obj");
       if (obj) {
         if (fontDir == "horizontal") {
-          obj.set(
-            "text",
-            obj.text
-              .replace(/<\/?.+?>/g, "")
-              .split("")
-              .join("\n")
-          );
-          obj.set("width", obj?.dynamicMinWidth);
+          //   obj.set(
+          //     "text",
+          //     obj.text
+          //       .replace(/<\/?.+?>/g, "")
+          //       .split("")
+          //       .join("\n")
+          //   );
+          //   obj.set("width", obj?.dynamicMinWidth);
+          //   obj.set("width", this.textStyleData.height).setCoords();
+          //   obj.set("height", this.textStyleData.width).setCoords();
           this.textForm.fontDir = "vertical";
+          //   console.log(obj.height, 'height');
+          //   console.log(obj.width, 'width');
+          //   obj.set("angle", 90).setCoords();
+          obj.set("rotate", -90).setCoords();
         } else {
           obj.set("text", obj.text.replace(/\r|\n/gi, ""));
           this.textForm.fontDir = "horizontal";
+          //   console.log(obj.height, 'height');
+          //   console.log(obj.width, 'width');
         }
+        // if (fontDir == "horizontal") {
+        //   obj.set("writingMode", "horizontal-tb");
+        //   this.textForm.fontDir = "vertical";
+        // } else {
+        //   obj.set("writingMode", "vertical-rl");
+        //   this.textForm.fontDir = "horizontal";
+        // }
         editorCanvas.renderAll();
       }
     },
@@ -546,7 +594,6 @@ export default {
       this.activeTpl = tplName;
     },
     renderJson(item) {
-      this.onMouseDown(editorCanvas); // 绑定点击新增文字事件
       console.log(item, "生成模板");
       const imgInstance = editorCanvas.loadFromJSON(item);
       console.log(imgInstance, "imgInstance");
@@ -563,11 +610,11 @@ export default {
       canvas.requestRenderAll();
     },
     // 加载icon
-    renderIcon(ctx, left, top, styleOverride, fabricObject, img, initialAngle = 0) {
+    renderIcon(ctx, left, top, styleOverride, fabricObject, img) {
       const size = 24;
       ctx.save();
       ctx.translate(left, top);
-      ctx.rotate(fabric.util.degreesToRadians(fabricObject.angle + initialAngle));
+      ctx.rotate(fabric.util.degreesToRadians(fabricObject.angle));
       ctx.drawImage(img, -size / 2, -size / 2, size, size);
       ctx.restore();
     },
@@ -577,20 +624,52 @@ export default {
      * 2.画布上有选中元素，点击空白处，选中元素失去焦点
      * 3.画布上有选中元素，点击选中元素，进行文字编辑
      */
-    onMouseDown(canvas) {
+    on_mouse_down(canvas) {
       canvas.on("mouse:down", (opt) => {
-        console.log("mouse:down");
+        let currentActive = editorCanvas.getActiveObject();
+        console.log("mouse:down", currentActive);
         const obj = editorCanvas.getActiveObject();
+        this.panning = true;
+        canvas.selection = false;
+      });
+    },
+    on_mouse_move(canvas) {
+      canvas.on("mouse:move", (e) => {
+        if (this.panning && e && e.e) {
+        }
+      });
+    },
+    on_mouse_up(canvas) {
+      canvas.on("mouse:up", (opt) => {
+        console.log("mouse:up", fabric.Object.prototype);
+        const obj = editorCanvas.getActiveObject();
+        this.panning = false;
+        this.showAngle = false;
+        canvas.selection = true;
+      });
+    },
+    // 监听旋转
+    on_mouse_rotate(canvas) {
+      canvas.on("object:rotating", (opt) => {
+        let currentActive = editorCanvas.getActiveObject();
+        this.angleBox.angle = parseInt(currentActive.angle);
+        this.showAngle = true;
+        this.angleBox.left = opt.e.x - 470 + 10;
+        this.angleBox.top = opt.e.y + 10;
       });
     },
     // 添加文字
     add_text() {
       // let textBox = new fabric.IText('双击编辑文字', this.textStyleData);
       let textBox = new fabric.Textbox("双击编辑文字", this.textStyleData);
-      setTimeout(() => {
-        editorCanvas.add(textBox).setActiveObject(textBox);
-      });
-
+      editorCanvas.centerObject(textBox);
+      //   setControlVisible 方法删除垂直缩放的操作点，禁止用户垂直缩放。
+      textBox.setControlVisible("mt", false);
+      textBox.setControlVisible("mb", false);
+      editorCanvas.add(textBox).setActiveObject(textBox);
+      console.log(textBox, "textBox");
+      this.textStyleData.width = textBox.width;
+      this.textStyleData.height = textBox.height;
       // console.log(fabric.Object.prototype.controls);
     },
     // 清空画布
@@ -640,8 +719,8 @@ export default {
     // 查看更多 TODO这里用来测试
     look_more() {
       var rect = new fabric.Rect({
-        left: 100,
-        top: 50,
+        left: 0,
+        top: 0,
         fill: "yellow",
         width: 200,
         height: 100,
@@ -682,20 +761,30 @@ export default {
             this.zoomIt("small");
           }
         }
+        // 监听删除按钮
+        let currentActive = editorCanvas.getActiveObject();
+        console.log(currentActive);
+        if (
+          currentActive &&
+          !currentActive.isEditing &&
+          (event.keyCode === 46 || event.keyCode === 8)
+        ) {
+          editorCanvas.remove(currentActive);
+          editorCanvas.renderAll();
+        }
       };
     },
     /**
- * 控制选中对象围绕中心点旋转
- * @param {Number} angle 
- * @returns 
- */
-// rotate(angle) {
-//     if (!this.canvas.getActiveObject()) return;
-//     let activeObject = this.canvas.getActiveObject();
-//     activeObject.rotate(angle);
-//     this.canvas.requestRenderAll();
-// }
-
+     * 控制选中对象围绕中心点旋转
+     * @param {Number} angle
+     * @returns
+     */
+    // rotate(angle) {
+    //     if (!this.canvas.getActiveObject()) return;
+    //     let activeObject = this.canvas.getActiveObject();
+    //     activeObject.rotate(angle);
+    //     this.canvas.requestRenderAll();
+    // }
   },
   destroyed() {
     // 取消监听键盘
@@ -790,6 +879,13 @@ export default {
       user-select: none;
       align-items: center;
       justify-content: center;
+    }
+    .angle-box {
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: #fff;
+      padding: 2px 5px;
+      border-radius: 2px;
     }
   }
   .right-box {
