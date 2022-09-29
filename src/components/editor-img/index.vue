@@ -182,7 +182,7 @@
               />
               <el-tag slot="reference" class="font-set">行间距</el-tag>
             </el-popover>
-            <el-tag class="font-set" @click="changeFontDir"
+            <el-tag class="font-set" @click="changeFontDir2"
               >字体方向切换</el-tag
             >
           </el-form-item>
@@ -216,7 +216,10 @@ let rotateImgUrl =
 // https://s1.ax1x.com/2022/09/22/xFBLmn.jpg
 import { fontFamilies, fontSizes, fontColor } from "@/utils/fontData";
 import { tpls } from "@/utils/tpl";
+import Canvas from "@/utils/Canvas";
+import VerticalTextbox from "@/utils/VerticalTextbox";
 import { fabric } from "../../../node_modules/fabric/dist/fabric.js";
+// import { textVerticalAlign } from "@yassidev/fabric-extensions";
 // fabric
 import CProgress from "@/components/c-progress.vue";
 let editorCanvas = "";
@@ -312,7 +315,7 @@ export default {
       rotateImg: null,
       // 添加文本框的默认属性
       textStyleData: {
-        type: "editText",
+        type: "textbox",
         top: 50,
         left: 50,
         width: 241,
@@ -327,7 +330,10 @@ export default {
         fontWeight: "normal",
         fontStyle: "normal",
         textBackgroundColor: "rgba(0,0,0,0)",
-        // hasControls: true
+        // hasControls: true,
+        editable: false, // 禁止文字编辑
+        // verticalAlign: "middle", // 垂直中线
+        originX: "right",
       },
       zoomCounter: 100, // 画布缩放的尺寸
       picDetail: {
@@ -373,6 +379,8 @@ export default {
 
     var canvas = new fabric.Canvas("c");
     this.testCanvas = canvas;
+
+    // textVerticalAlign(fabric);
   },
   methods: {
     //   初始化默认模板
@@ -382,7 +390,8 @@ export default {
       imgdefault.onload = () => {
         fabric.Image.fromURL(defaultImg, (img) => {
           const scale = 600 / imgdefault.width;
-          editorCanvas = new fabric.Canvas("editorCanvas", {
+          //   editorCanvas = new fabric.Canvas("editorCanvas", {
+          editorCanvas = new Canvas("editorCanvas", {
             width: imgdefault.width * scale,
             height: 800,
           });
@@ -421,8 +430,8 @@ export default {
       // 单独修改旋转控制点距离主体的纵向距离为-20px
       //   fabric.Object.prototype.controls.mtr.offsetY = -20;
       fabric.Object.prototype.setControlsVisibility({
-        mb: false, // 下中
-        mt: false, // 上中
+        // mb: false, // 下中
+        // mt: false, // 上中
       });
       console.log(fabric.Object.prototype);
       // 旋转按钮图标修改
@@ -553,7 +562,6 @@ export default {
 
       let { fontDir } = this.textForm;
       const obj = editorCanvas.getActiveObject();
-      console.log(obj, "obj");
       if (obj) {
         if (fontDir == "horizontal") {
           //   obj.set(
@@ -587,11 +595,62 @@ export default {
         editorCanvas.renderAll();
       }
     },
+    changeFontDir2() {
+      let { fontDir } = this.textForm;
+      const obj = editorCanvas.getActiveObject();
+      if (obj) {
+        // if (fontDir == "horizontal") {
+        //     VerticalTextbox.fromTextbox(obj, txtbox => handleTextFlipped(txtbox, obj))
+        //     this.textForm.fontDir = "vertical";
+        // }else {
+        //     obj.toTextbox(txtbox => handleTextFlipped(txtbox, obj))
+        //     this.textForm.fontDir = "horizontal";
+        // }
+        if (obj.type === "vertical-textbox") {
+          console.log("变水平");
+          obj.toTextbox((txtbox) => this.handleTextFlipped(txtbox, obj));
+        } else if (obj.type === "textbox") {
+          console.log("变垂直");
+          VerticalTextbox.fromTextbox(obj, (txtbox) =>
+            this.handleTextFlipped(txtbox, obj)
+          );
+        }
+      }
+    },
+    handleTextFlipped(txtbox, originTxtBox) {
+      const originIndex = editorCanvas.getObjects().indexOf(originTxtBox);
+      editorCanvas.startEditing();
+      editorCanvas.insertAt(txtbox, originIndex, true);
+      editorCanvas.stopEditing();
+      editorCanvas.setActiveObject(txtbox);
+    },
     // 生成模板
     generate_tpl(item, tplName) {
       editorCanvas.clear();
-      this.renderJson(item);
+        this.renderJson(item, tplName);
+    //   this.renderTpl(item, tplName);
       this.activeTpl = tplName;
+    },
+    // TODO 添加文字
+    renderTpl(item, tplName) {
+      const imgdefault = new Image();
+      imgdefault.src = item.tplImgs;
+      imgdefault.onload = () => {
+        fabric.Image.fromURL(item.tplImgs, (img) => {
+          const scale = 600 / imgdefault.width;
+          //   editorCanvas = new fabric.Canvas("editorCanvas", {
+          editorCanvas = new Canvas("editorCanvas", {
+            width: imgdefault.width * scale,
+            height: 800,
+          });
+          editorCanvas.preserveObjectStacking = true; // 保持原有层级
+          //   editorCanvas.hoverCursor = "defalut"; //悬浮光标改成手型
+          img.scale(scale);
+          img.set("selectable", false); // 背景图不可选择
+          const imgInstance = editorCanvas.add(img); // 添加背景图
+          imgInstance.renderAll();
+        });
+      };
     },
     renderJson(item) {
       console.log(item, "生成模板");
@@ -641,7 +700,7 @@ export default {
     },
     on_mouse_up(canvas) {
       canvas.on("mouse:up", (opt) => {
-        console.log("mouse:up", fabric.Object.prototype);
+        // console.log("mouse:up", fabric.Object.prototype);
         const obj = editorCanvas.getActiveObject();
         this.panning = false;
         this.showAngle = false;
@@ -662,15 +721,16 @@ export default {
     add_text() {
       // let textBox = new fabric.IText('双击编辑文字', this.textStyleData);
       let textBox = new fabric.Textbox("双击编辑文字", this.textStyleData);
+      // const textBox = new VerticalTextbox("双击编辑文字", {
+      //   editable: false
+      // });
       editorCanvas.centerObject(textBox);
       //   setControlVisible 方法删除垂直缩放的操作点，禁止用户垂直缩放。
       textBox.setControlVisible("mt", false);
       textBox.setControlVisible("mb", false);
       editorCanvas.add(textBox).setActiveObject(textBox);
-      console.log(textBox, "textBox");
-      this.textStyleData.width = textBox.width;
-      this.textStyleData.height = textBox.height;
-      // console.log(fabric.Object.prototype.controls);
+      //   this.textStyleData.width = textBox.width;
+      //   this.textStyleData.height = textBox.height;
     },
     // 清空画布
     resetCanvas() {
@@ -718,19 +778,18 @@ export default {
     },
     // 查看更多 TODO这里用来测试
     look_more() {
-      var rect = new fabric.Rect({
-        left: 0,
-        top: 0,
-        fill: "yellow",
-        width: 200,
-        height: 100,
-        objectCaching: false,
-        stroke: "lightgreen",
-        strokeWidth: 0,
-      });
-
-      this.testCanvas.add(rect);
-      this.testCanvas.setActiveObject(rect);
+      //   var rect = new fabric.Rect({
+      //     left: 0,
+      //     top: 0,
+      //     fill: "yellow",
+      //     width: 200,
+      //     height: 100,
+      //     objectCaching: false,
+      //     stroke: "lightgreen",
+      //     strokeWidth: 0,
+      //   });
+      //   this.testCanvas.add(rect);
+      //   this.testCanvas.setActiveObject(rect);
     },
     // 存模板
     handleSaveTpl() {
@@ -774,17 +833,6 @@ export default {
         }
       };
     },
-    /**
-     * 控制选中对象围绕中心点旋转
-     * @param {Number} angle
-     * @returns
-     */
-    // rotate(angle) {
-    //     if (!this.canvas.getActiveObject()) return;
-    //     let activeObject = this.canvas.getActiveObject();
-    //     activeObject.rotate(angle);
-    //     this.canvas.requestRenderAll();
-    // }
   },
   destroyed() {
     // 取消监听键盘

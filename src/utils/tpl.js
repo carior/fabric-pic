@@ -95,6 +95,7 @@ export const tpls = {
         path: null,
         direction: "ltr",
         styles: {},
+        editable: false
       },
       {
         type: "textbox",
@@ -143,6 +144,7 @@ export const tpls = {
         path: null,
         direction: "ltr",
         styles: {},
+        editable: false
       },
     ],
     tplImgs:
