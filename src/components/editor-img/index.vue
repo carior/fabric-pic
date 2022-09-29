@@ -331,7 +331,7 @@ export default {
         fontStyle: "normal",
         textBackgroundColor: "rgba(0,0,0,0)",
         // hasControls: true,
-        editable: false, // 禁止文字编辑
+        editable: true, // 禁止文字编辑
         // verticalAlign: "middle", // 垂直中线
         originX: "right",
       },
@@ -618,6 +618,7 @@ export default {
       }
     },
     handleTextFlipped(txtbox, originTxtBox) {
+      console.log('txtbox=>', txtbox);
       const originIndex = editorCanvas.getObjects().indexOf(originTxtBox);
       editorCanvas.startEditing();
       editorCanvas.insertAt(txtbox, originIndex, true);

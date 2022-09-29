@@ -99,6 +99,7 @@ class VerticalTextbox extends fabric.IText {
       char = this._textLines[lineIndex][charIndex],
       localLineHeight = this.getHeightOfLine(lineIndex),
       charLeft = left - (localLineHeight / this.lineHeight - charbox.width) / 2,
+      // charTop = top + charbox.top + charbox.height - this.lineHeight,
       charTop = top + charbox.top + charbox.height - this.lineHeight,
       isLtr = this.direction === 'ltr';
     ctx.save();
@@ -128,6 +129,16 @@ class VerticalTextbox extends fabric.IText {
     );
 
     ctx.restore();
+
+    console.log('method=>', method);
+    console.log('ctx=>', ctx);
+    console.log('lineIndex=>', lineIndex);
+    console.log('charIndex=>', charIndex);
+    console.log('left=>', left);
+    console.log('top=>', top);
+    console.log('char=>', char);
+    console.log('charLeft=>', charLeft);
+    console.log('charTop=>', charTop);
   }
 
   _renderAlphanumeric(method, ctx, lineIndex, startIndex, endIndex, left, top) {
@@ -374,9 +385,9 @@ class VerticalTextbox extends fabric.IText {
   }
 
   /**
-   * 
-   * @param {*} boundaries 
-   * @param {CanvasRenderingContext2D} ctx 
+   *
+   * @param {*} boundaries
+   * @param {CanvasRenderingContext2D} ctx
    */
   renderSelection(boundaries, ctx) {
     var selectionStart = this.inCompositionMode ? this.hiddenTextarea.selectionStart : this.selectionStart,

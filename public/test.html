@@ -7,128 +7,27 @@
     <title>Document</title>
 </head>
 <style>
+  * {
+    margin: 0;
+    padding: 0;
+  }
     canvas {
         border: 1px solid #ccc;
+        font-size: 20px;
+        margin-top: 10px;
     }
 </style>
 <body>
-    <canvas width="100" height="200"></canvas>
+    <canvas width="500" height="200" id="myCanvas"></canvas>
 </body>
 <script>
-/**
+var c=document.getElementById("myCanvas");
+var ctx=c.getContext("2d");
 
-* @author zhangxinxu(.com)
+ctx.font="20px Georgia";
+ctx.fillText("Hello World!",0,20);
+ctx.fillText("Hello World!",0,40);
+ctx.strokeText('11', 100,100);
 
-* @licence MIT
-
-* @description http://www.zhangxinxu.com/wordpress/?p=7362
-
-*/
-
-CanvasRenderingContext2D.prototype.fillTextVertical = function (text, x, y) {
-
-var context = this;
-
-var canvas = context.canvas;
-
-var arrText = text.split('');
-
-var arrWidth = arrText.map(function (letter) {
-
-return context.measureText(letter).width;
-
-});
-
-var align = context.textAlign;
-
-var baseline = context.textBaseline;
-
-if (align == 'left') {
-
-x = x + Math.max.apply(null, arrWidth) / 2;
-
-} else if (align == 'right') {
-
-x = x - Math.max.apply(null, arrWidth) / 2;
-
-}
-
-if (baseline == 'bottom' || baseline == 'alphabetic' || baseline == 'ideographic') {
-
-y = y - arrWidth[0] / 2;
-
-} else if (baseline == 'top' || baseline == 'hanging') {
-
-y = y + arrWidth[0] / 2;
-
-}
-
-context.textAlign = 'center';
-
-context.textBaseline = 'middle';
-
-// 开始逐字绘制
-
-arrText.forEach(function (letter, index) {
-
-// 确定下一个字符的纵坐标位置
-
-var letterWidth = arrWidth[index];
-
-// 是否需要旋转判断
-
-var code = letter.charCodeAt(0);
-
-if (code <= 256) {
-
-context.translate(x, y);
-
-// 英文字符，旋转90°
-
-context.rotate(90 * Math.PI / 180);
-
-context.translate(-x, -y);
-
-} else if (index > 0 && text.charCodeAt(index - 1) < 256) {
-
-// y修正
-
-y = y + arrWidth[index - 1] / 2;
-
-}
-
-context.fillText(letter, x, y);
-
-// 旋转坐标系还原成初始态
-
-context.setTransform(1, 0, 0, 1, 0, 0);
-
-// 确定下一个字符的纵坐标位置
-
-var letterWidth = arrWidth[index];
-
-y = y + letterWidth;
-
-});
-
-// 水平垂直对齐方式还原
-
-context.textAlign = align;
-
-context.textBaseline = baseline;
-
-};
-
-var canvas = document.querySelector('canvas');
-
-var context = canvas.getContext('2d');
-
-context.font = '24px STKaiti, sans-serif';
-
-context.textAlign = 'center';
-
-context.textBaseline = 'top';
-
-context.fillTextVertical('anglebaby和黄晓明', canvas.width / 2, 0);
 </script>
 </html>
