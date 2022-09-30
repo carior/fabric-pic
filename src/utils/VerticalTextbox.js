@@ -1,33 +1,34 @@
-import { fabric } from 'fabric'
+import { fabric } from "fabric";
 
 const LATIN_CHARS_REGX = /[a-zA-Z\.\s]+/;
 const NUMBERIC_REGX = /[0-9]/;
 const BRACKETS_REGX = /[\(\)\]\[\{\}\]]/;
-const JP_BRACKETS = /[ー「」『』（）〔〕［］｛｝｟｠〈〉《》【】〖〗〘〙〚〛゛゜。、・゠＝〜…•‥◦﹅﹆]/;
+const JP_BRACKETS =
+  /[ー「」『』（）〔〕［］｛｝｟｠〈〉《》【】〖〗〘〙〚〛゛゜。、・゠＝〜…•‥◦﹅﹆]/;
 class VerticalTextbox extends fabric.IText {
   initialize(text, options) {
-    this.textAlign = 'right';
-    this.direction = 'rtl';
-    this.type = 'vertical-textbox';
-    this.typeObject = 'vertical-textbox';
+    this.textAlign = "right";
+    this.direction = "rtl";
+    this.type = "vertical-textbox";
+    this.typeObject = "vertical-textbox";
     this.minHeight = options.width;
 
     // re-map keys movements
     this.keysMapRtl = Object.assign(this.keysMapRtl, {
-      33: 'moveCursorLeft',
-      34: 'moveCursorDown',
-      35: 'moveCursorUp',
-      36: 'moveCursorRight',
-      37: 'moveCursorDown',
-      38: 'moveCursorLeft',
-      39: 'moveCursorUp',
-      40: 'moveCursorRight',
+      33: "moveCursorLeft",
+      34: "moveCursorDown",
+      35: "moveCursorUp",
+      36: "moveCursorRight",
+      37: "moveCursorDown",
+      38: "moveCursorLeft",
+      39: "moveCursorUp",
+      40: "moveCursorRight",
     });
 
     this.offsets = {
       underline: 0.05,
       linethrough: 0.65,
-      overline: 1.10
+      overline: 1.1,
     };
 
     return super.initialize.call(this, text, options);
@@ -37,48 +38,75 @@ class VerticalTextbox extends fabric.IText {
     super.initDimensions.call(this);
 
     if (this.height < this.minHeight) {
-      this._set('height', this.minHeight);
+      this._set("height", this.minHeight);
     }
   }
 
   static fromObject(object, callback) {
     const objectCopy = fabric.util.object.clone(object);
     delete objectCopy.path;
-    return fabric.Object._fromObject('VerticalTextbox', objectCopy, function (textInstance) {
-      callback(textInstance);
-    }, 'vertical-textbox');
-  };
+    return fabric.Object._fromObject(
+      "VerticalTextbox",
+      objectCopy,
+      function (textInstance) {
+        callback(textInstance);
+      },
+      "vertical-textbox"
+    );
+  }
 
   toTextbox(callback) {
     const objectCopy = fabric.util.object.clone(this.toObject());
     delete objectCopy.path;
-    objectCopy.direction = 'ltr';
-    objectCopy.textAlign = 'left';
+    objectCopy.direction = "ltr";
+    objectCopy.textAlign = "left";
+    const verticalHeight = objectCopy.height;
+    const verticalWidth = objectCopy.width;
     delete objectCopy.minHeight;
-    return fabric.Object._fromObject('Textbox', objectCopy, function (textbox) {
-      textbox.type = 'textbox';
-      textbox.typeObject = 'text';
-      callback(textbox);
-    }, 'text');
+    return fabric.Object._fromObject(
+      "Textbox",
+      objectCopy,
+      function (textbox) {
+        textbox.type = "textbox";
+        textbox.typeObject = "text";
+        // textbox.height = verticalWidth;
+        // textbox.width = verticalHeight;
+        callback(textbox);
+      },
+      "text"
+    );
   }
 
   static fromTextbox(textbox, callback) {
     const objectCopy = fabric.util.object.clone(textbox.toObject());
+    const verticalHeight = objectCopy.height;
+    const verticalWidth = objectCopy.width;
     delete objectCopy.path;
-    return fabric.Object._fromObject('VerticalTextbox', objectCopy, function (textInstance) {
-      textInstance.textAlign = 'right';
-      textInstance.direction = 'rtl';
-      textInstance.type = 'vertical-textbox';
-      textInstance.typeObject = 'vertical-textbox';
-      callback(textInstance);
-    }, 'vertical-textbox');
+    return fabric.Object._fromObject(
+      "VerticalTextbox",
+      objectCopy,
+      function (textInstance) {
+        textInstance.textAlign = "right";
+        textInstance.direction = "rtl";
+        textInstance.type = "vertical-textbox";
+        textInstance.typeObject = "vertical-textbox";
+        textInstance.verticalAlign = textbox["vertical-align"] || "left"; // 默认为向上对齐
+        // textInstance.height = verticalHeight;
+        // textInstance.width = verticalWidth;
+        //   console.log(verticalHeight, 'textInstance');
+        // console.log(verticalWidth, 'textInstance');
+        callback(textInstance);
+      },
+      "vertical-textbox"
+    );
   }
 
   _renderTextCommon(ctx, method) {
     ctx.save();
-    var lineHeights = 0, left = this._getLeftOffset(), top = this._getTopOffset();
+    var lineHeights = 0,
+      left = this._getLeftOffset(),
+      top = this._getTopOffset();
     for (var i = 0, len = this._textLines.length; i < len; i++) {
-
       !this.__charBounds[i] && this.measureLine(i);
 
       this._renderTextLine(
@@ -101,11 +129,22 @@ class VerticalTextbox extends fabric.IText {
       charLeft = left - (localLineHeight / this.lineHeight - charbox.width) / 2,
       // charTop = top + charbox.top + charbox.height - this.lineHeight,
       charTop = top + charbox.top + charbox.height - this.lineHeight,
-      isLtr = this.direction === 'ltr';
+      isLtr = this.direction === "ltr";
+    console.log("charbox", charbox);
+    console.log("this", this);
+    if (this.verticalAlign == "center") {
+      // 居中对齐
+      charTop = charTop + (this.height - this.__lineWidths[lineIndex]) / 2;
+    } else if (this.verticalAlign == "bottom") {
+      // 下对齐
+      charTop = charTop + this.height - this.__lineWidths[lineIndex];
+    } else {
+      charTop = top + charbox.top + charbox.height - this.lineHeight;
+    }
     ctx.save();
-    ctx.canvas.setAttribute('dir', isLtr ? 'ltr' : 'rtl');
-    ctx.direction = isLtr ? 'ltr' : 'rtl';
-    ctx.textAlign = isLtr ? 'left' : 'right';
+    ctx.canvas.setAttribute("dir", isLtr ? "ltr" : "rtl");
+    ctx.direction = isLtr ? "ltr" : "rtl";
+    ctx.textAlign = isLtr ? "left" : "right";
 
     if (JP_BRACKETS.test(char)) {
       // TODO: why the fuck do we need plus 3 and minus 5 here...
@@ -118,7 +157,8 @@ class VerticalTextbox extends fabric.IText {
       ctx.translate(-tx, -ty);
     }
 
-    this._renderChar(method,
+    this._renderChar(
+      method,
       ctx,
       lineIndex,
       charIndex,
@@ -130,20 +170,20 @@ class VerticalTextbox extends fabric.IText {
 
     ctx.restore();
 
-    console.log('method=>', method);
-    console.log('ctx=>', ctx);
-    console.log('lineIndex=>', lineIndex);
-    console.log('charIndex=>', charIndex);
-    console.log('left=>', left);
-    console.log('top=>', top);
-    console.log('char=>', char);
-    console.log('charLeft=>', charLeft);
-    console.log('charTop=>', charTop);
+    console.log("method=>", method);
+    console.log("ctx=>", ctx);
+    console.log("lineIndex=>", lineIndex);
+    console.log("charIndex=>", charIndex);
+    console.log("left=>", left);
+    console.log("top=>", top);
+    console.log("char=>", char);
+    console.log("charLeft=>", charLeft);
+    console.log("charTop=>", charTop);
   }
 
   _renderAlphanumeric(method, ctx, lineIndex, startIndex, endIndex, left, top) {
     let charBox = this.__charBounds[lineIndex][startIndex],
-      chars = '',
+      chars = "",
       drawWidth = 0,
       localLineHeight = this.getHeightOfLine(lineIndex),
       drawLeft = left,
@@ -153,7 +193,7 @@ class VerticalTextbox extends fabric.IText {
       chars += this._textLines[lineIndex][i];
       drawWidth += this.__charBounds[lineIndex][i].width;
     }
-    const widthFactor = (drawWidth + localLineHeight / this.lineHeight);
+    const widthFactor = drawWidth + localLineHeight / this.lineHeight;
     const heightFactor = drawWidth / 2 - charBox.height;
     drawLeft = drawLeft - widthFactor / 2;
     drawTop = drawTop + heightFactor;
@@ -164,7 +204,8 @@ class VerticalTextbox extends fabric.IText {
     ctx.translate(tx, ty);
     ctx.rotate(Math.PI / 2);
     ctx.translate(-tx, -ty);
-    this._renderChar(method,
+    this._renderChar(
+      method,
       ctx,
       lineIndex,
       startIndex,
@@ -186,23 +227,36 @@ class VerticalTextbox extends fabric.IText {
     ctx.save();
     for (var i = 0, len = line.length - 1; i <= len; i++) {
       if (this._isLatin(line[i])) {
-        timeToRender = (i === len || !this._isLatin(line[i + 1]));
+        timeToRender = i === len || !this._isLatin(line[i + 1]);
         if (startChar === null && this._isLatin(line[i])) {
           startChar = i;
-        };
+        }
 
         if (!timeToRender) {
-          actualStyle = actualStyle || this.getCompleteStyleDeclaration(lineIndex, i);
+          actualStyle =
+            actualStyle || this.getCompleteStyleDeclaration(lineIndex, i);
           nextStyle = this.getCompleteStyleDeclaration(lineIndex, i + 1);
           // TODO 这里会报错
           // timeToRender = this._hasStyleChanged(actualStyle, nextStyle);
           // 改为下面这种
-          timeToRender = fabric.util.hasStyleChanged(actualStyle, nextStyle, true);
+          timeToRender = fabric.util.hasStyleChanged(
+            actualStyle,
+            nextStyle,
+            true
+          );
         }
 
         if (timeToRender) {
           endChar = i;
-          this._renderAlphanumeric(method, ctx, lineIndex, startChar, endChar, left, top);
+          this._renderAlphanumeric(
+            method,
+            ctx,
+            lineIndex,
+            startChar,
+            endChar,
+            left,
+            top
+          );
           timeToRender = false;
           startChar = null;
           endChar = null;
@@ -216,11 +270,15 @@ class VerticalTextbox extends fabric.IText {
   }
 
   _isLatin(char) {
-    return LATIN_CHARS_REGX.test(char) || BRACKETS_REGX.test(char) || NUMBERIC_REGX.test(char);
+    return (
+      LATIN_CHARS_REGX.test(char) ||
+      BRACKETS_REGX.test(char) ||
+      NUMBERIC_REGX.test(char)
+    );
   }
 
   calcTextWidth() {
-    return super.calcTextHeight.call(this)
+    return super.calcTextHeight.call(this);
   }
 
   calcTextHeight() {
@@ -233,11 +291,19 @@ class VerticalTextbox extends fabric.IText {
     if (this.charSpacing !== 0) {
       space = this._getWidthOfCharSpacing();
     }
-    for (var lineIndex = 0, len = this._textLines.length; lineIndex < len; lineIndex++) {
+    for (
+      var lineIndex = 0, len = this._textLines.length;
+      lineIndex < len;
+      lineIndex++
+    ) {
       !this.__charBounds[lineIndex] && this._measureLine(lineIndex);
 
       currentLineHeight = 0;
-      for (let charIndex = 0, rlen = this._textLines[lineIndex].length; charIndex < rlen; charIndex++) {
+      for (
+        let charIndex = 0, rlen = this._textLines[lineIndex].length;
+        charIndex < rlen;
+        charIndex++
+      ) {
         char = this._textLines[lineIndex][charIndex];
         charBox = this.__charBounds[lineIndex][charIndex];
         if (char) {
@@ -281,10 +347,10 @@ class VerticalTextbox extends fabric.IText {
         width += lineHeight;
         lineIndex = i;
         if (i > 0) {
-          charIndex += this._textLines[i - 1].length + this.missingNewlineOffset(i - 1);
+          charIndex +=
+            this._textLines[i - 1].length + this.missingNewlineOffset(i - 1);
         }
-      }
-      else {
+      } else {
         break;
       }
     }
@@ -299,21 +365,35 @@ class VerticalTextbox extends fabric.IText {
       }
       if (height <= mouseOffset.y) {
         charIndex++;
-      }
-      else {
+      } else {
         break;
       }
     }
 
-    return this._getNewSelectionStartFromOffset(mouseOffset, prevHeight, height, charIndex, jlen);
+    return this._getNewSelectionStartFromOffset(
+      mouseOffset,
+      prevHeight,
+      height,
+      charIndex,
+      jlen
+    );
   }
 
-  _getNewSelectionStartFromOffset(mouseOffset, prevHeight, height, index, jlen) {
+  _getNewSelectionStartFromOffset(
+    mouseOffset,
+    prevHeight,
+    height,
+    index,
+    jlen
+  ) {
     // we need Math.abs because when width is after the last char, the offset is given as 1, while is 0
     var distanceBtwLastCharAndCursor = mouseOffset.y - prevHeight,
       distanceBtwNextCharAndCursor = height - mouseOffset.y,
-      offset = distanceBtwNextCharAndCursor > distanceBtwLastCharAndCursor ||
-        distanceBtwNextCharAndCursor < 0 ? 0 : 1,
+      offset =
+        distanceBtwNextCharAndCursor > distanceBtwLastCharAndCursor ||
+        distanceBtwNextCharAndCursor < 0
+          ? 0
+          : 1,
       newSelectionStart = index + offset;
     // if object is horizontally flipped, mirror cursor location from the end
     if (this.flipX) {
@@ -328,7 +408,7 @@ class VerticalTextbox extends fabric.IText {
   }
 
   _getCursorBoundariesOffsets(position) {
-    if (this.cursorOffsetCache && 'top' in this.cursorOffsetCache) {
+    if (this.cursorOffsetCache && "top" in this.cursorOffsetCache) {
       return this.cursorOffsetCache;
     }
     var lineLeftOffset,
@@ -356,14 +436,17 @@ class VerticalTextbox extends fabric.IText {
 
     lineLeftOffset = this._getLineLeftOffset(lineIndex);
     // bound && (leftOffset = bound.left);
-    if (this.charSpacing !== 0 && charIndex === this._textLines[lineIndex].length) {
+    if (
+      this.charSpacing !== 0 &&
+      charIndex === this._textLines[lineIndex].length
+    ) {
       leftOffset -= this._getWidthOfCharSpacing();
     }
     boundaries = {
       top: lineLeftOffset + (topOffset > 0 ? topOffset : 0),
       left: leftOffset,
     };
-    if (this.direction === 'rtl') {
+    if (this.direction === "rtl") {
       boundaries.left *= -1;
     }
 
@@ -371,14 +454,23 @@ class VerticalTextbox extends fabric.IText {
     return this.cursorOffsetCache;
   }
   _getGraphemeBox(grapheme, lineIndex, charIndex, prevGrapheme, skipLeft) {
-    let box = super._getGraphemeBox(grapheme, lineIndex, charIndex, prevGrapheme, skipLeft);
+    let box = super._getGraphemeBox(
+      grapheme,
+      lineIndex,
+      charIndex,
+      prevGrapheme,
+      skipLeft
+    );
     box.top = 0;
-    box.height = Number(box.height)
+    box.height = Number(box.height);
 
     if (charIndex > 0 && !skipLeft) {
       const previousBox = this.__charBounds[lineIndex][charIndex - 1];
-      const isAlphaNumeric = this._isLatin(this._textLines[lineIndex][charIndex - 1]);
-      box.top = previousBox.top + previousBox[isAlphaNumeric ? 'width' : 'height'];
+      const isAlphaNumeric = this._isLatin(
+        this._textLines[lineIndex][charIndex - 1]
+      );
+      box.top =
+        previousBox.top + previousBox[isAlphaNumeric ? "width" : "height"];
     }
 
     return box;
@@ -390,9 +482,13 @@ class VerticalTextbox extends fabric.IText {
    * @param {CanvasRenderingContext2D} ctx
    */
   renderSelection(boundaries, ctx) {
-    var selectionStart = this.inCompositionMode ? this.hiddenTextarea.selectionStart : this.selectionStart,
-      selectionEnd = this.inCompositionMode ? this.hiddenTextarea.selectionEnd : this.selectionEnd,
-      isJustify = this.textAlign.indexOf('justify') !== -1,
+    var selectionStart = this.inCompositionMode
+        ? this.hiddenTextarea.selectionStart
+        : this.selectionStart,
+      selectionEnd = this.inCompositionMode
+        ? this.hiddenTextarea.selectionEnd
+        : this.selectionEnd,
+      isJustify = this.textAlign.indexOf("justify") !== -1,
       start = this.get2DCursorLocation(selectionStart),
       end = this.get2DCursorLocation(selectionEnd),
       startLine = start.lineIndex,
@@ -401,19 +497,21 @@ class VerticalTextbox extends fabric.IText {
       endChar = end.charIndex < 0 ? 0 : end.charIndex;
     for (var i = startLine; i <= endLine; i++) {
       var lineHeight = this.getHeightOfLine(i),
-        boxStart = 0, boxEnd = 0;
+        boxStart = 0,
+        boxEnd = 0;
 
       if (i === startLine) {
         boxStart = this.__charBounds[startLine][startChar].top;
       }
       if (i >= startLine && i < endLine) {
-        boxEnd = isJustify && !this.isEndOfWrapping(i) ? this.height : this.getLineWidth(i) || 5; // WTF is this 5?
-      }
-      else if (i === endLine) {
+        boxEnd =
+          isJustify && !this.isEndOfWrapping(i)
+            ? this.height
+            : this.getLineWidth(i) || 5; // WTF is this 5?
+      } else if (i === endLine) {
         if (endChar === 0) {
           boxEnd = this.__charBounds[endLine][endChar].top;
-        }
-        else {
+        } else {
           var charSpacing = this._getWidthOfCharSpacing();
           const prevCharBox = this.__charBounds[endLine][endChar - 1];
           boxEnd = prevCharBox.top - charSpacing;
@@ -433,64 +531,65 @@ class VerticalTextbox extends fabric.IText {
         drawWidth /= this.lineHeight;
       }
       if (this.inCompositionMode) {
-        ctx.fillStyle = this.compositionColor || 'black';
-      }
-      else {
+        ctx.fillStyle = this.compositionColor || "black";
+      } else {
         ctx.fillStyle = this.selectionColor;
       }
-      if (this.direction === 'rtl') {
+      if (this.direction === "rtl") {
         drawStart = this.width - drawStart - drawWidth;
       }
-      ctx.fillRect(
-        drawStart,
-        boundaries.top + boxStart,
-        drawWidth,
-        drawHeight,
-      );
+      ctx.fillRect(drawStart, boundaries.top + boxStart, drawWidth, drawHeight);
       boundaries.leftOffset -= lineHeight;
     }
   }
 
-
   renderCursor(boundaries, ctx) {
     var cursorLocation = this.get2DCursorLocation(),
       lineIndex = cursorLocation.lineIndex,
-      charIndex = cursorLocation.charIndex > 0 ? cursorLocation.charIndex - 1 : 0,
+      charIndex =
+        cursorLocation.charIndex > 0 ? cursorLocation.charIndex - 1 : 0,
       charBox = this.__charBounds[lineIndex][charIndex],
-      charHeight = this.getValueOfPropertyAt(lineIndex, charIndex, 'fontSize'),
+      charHeight = this.getValueOfPropertyAt(lineIndex, charIndex, "fontSize"),
       multiplier = this.scaleX * this.canvas.getZoom(),
       cursorWidth = this.cursorWidth / multiplier,
       topOffset = boundaries.topOffset,
       lineHeight = this.getHeightOfLine(lineIndex),
-      drawStart = boundaries.left - boundaries.leftOffset + (lineHeight / this.lineHeight + charBox.height) / 2;
+      drawStart =
+        boundaries.left -
+        boundaries.leftOffset +
+        (lineHeight / this.lineHeight + charBox.height) / 2;
 
     if (this.inCompositionMode) {
       this.renderSelection(boundaries, ctx);
     }
-    if (this.direction === 'rtl') {
+    if (this.direction === "rtl") {
       drawStart = this.width - drawStart;
     }
-    ctx.fillStyle = this.cursorColor || this.getValueOfPropertyAt(lineIndex, charIndex, 'fill');
+    ctx.fillStyle =
+      this.cursorColor ||
+      this.getValueOfPropertyAt(lineIndex, charIndex, "fill");
     ctx.globalAlpha = this.__isMousedown ? 1 : this._currentCursorOpacity;
     ctx.fillRect(
       drawStart,
       topOffset + boundaries.top,
       charHeight,
-      cursorWidth,
+      cursorWidth
     );
   }
 
-
   _renderTextLinesBackground(ctx) {
-    if (!this.textBackgroundColor && !this.styleHas('textBackgroundColor')) {
+    if (!this.textBackgroundColor && !this.styleHas("textBackgroundColor")) {
       return;
     }
     var heightOfLine,
       originalFill = ctx.fillStyle,
-      line, lastColor,
+      line,
+      lastColor,
       leftOffset = this.width - this._getLeftOffset(),
       lineTopOffset = this._getTopOffset(),
-      charBox, currentColor, path = this.path,
+      charBox,
+      currentColor,
+      path = this.path,
       boxHeight = 0,
       left = 0,
       top = null,
@@ -499,27 +598,30 @@ class VerticalTextbox extends fabric.IText {
     for (var i = 0, len = this._textLines.length; i < len; i++) {
       heightOfLine = this.getHeightOfLine(i);
       left += heightOfLine;
-      if (!this.textBackgroundColor && !this.styleHas('textBackgroundColor', i)) {
+      if (
+        !this.textBackgroundColor &&
+        !this.styleHas("textBackgroundColor", i)
+      ) {
         continue;
       }
       line = this._textLines[i];
       boxHeight = 0;
-      lastColor = this.getValueOfPropertyAt(i, 0, 'textBackgroundColor');
+      lastColor = this.getValueOfPropertyAt(i, 0, "textBackgroundColor");
       top = this.__charBounds[i][0].top;
       for (var j = 0, jlen = line.length; j < jlen; j++) {
         char = line[j];
         charBox = this.__charBounds[i][j];
-        currentColor = this.getValueOfPropertyAt(i, j, 'textBackgroundColor');
+        currentColor = this.getValueOfPropertyAt(i, j, "textBackgroundColor");
 
         if (currentColor !== lastColor) {
           ctx.fillStyle = lastColor;
           if (lastColor) {
             ctx.fillRect(
-              leftOffset - left + heightOfLine - (heightOfLine / this.lineHeight),
+              leftOffset - left + heightOfLine - heightOfLine / this.lineHeight,
               lineTopOffset + top,
               heightOfLine / this.lineHeight,
               boxHeight
-            )
+            );
           }
 
           if (this._isLatin(char)) {
@@ -529,8 +631,7 @@ class VerticalTextbox extends fabric.IText {
           }
           lastColor = currentColor;
           top = charBox.top;
-        }
-        else {
+        } else {
           if (this._isLatin(char)) {
             boxHeight += charBox.kernedWidth;
           } else {
@@ -541,13 +642,12 @@ class VerticalTextbox extends fabric.IText {
       if (currentColor && !path) {
         ctx.fillStyle = currentColor;
         ctx.fillRect(
-          leftOffset - left + heightOfLine - (heightOfLine / this.lineHeight),
+          leftOffset - left + heightOfLine - heightOfLine / this.lineHeight,
           lineTopOffset + top,
           heightOfLine / this.lineHeight,
           boxHeight
         );
       }
-
     }
     ctx.fillStyle = originalFill;
     // if there is text background color no
@@ -559,46 +659,58 @@ class VerticalTextbox extends fabric.IText {
     if (!this[type] && !this.styleHas(type)) {
       return;
     }
-    let heightOfLine, size, _size,
-      dy, _dy,
+    let heightOfLine,
+      size,
+      _size,
+      dy,
+      _dy,
       left = 0,
       top = 0,
       boxHeight = 0,
-      char = '',
-      line, lastDecoration,
+      char = "",
+      line,
+      lastDecoration,
       leftOffset = this.width - this._getLeftOffset(),
       topOffset = this._getTopOffset(),
-      boxWidth, charBox, currentDecoration,
-      currentFill, lastFill,
+      boxWidth,
+      charBox,
+      currentDecoration,
+      currentFill,
+      lastFill,
       offsetY = this.offsets[type];
 
     for (var i = 0, len = this._textLines.length; i < len; i++) {
       heightOfLine = this.getHeightOfLine(i);
       left += heightOfLine;
-      if (!this[type] && !this.styleHas(type, i)) { continue; }
+      if (!this[type] && !this.styleHas(type, i)) {
+        continue;
+      }
 
       boxHeight = 0;
       line = this._textLines[i];
       boxWidth = 0;
       lastDecoration = this.getValueOfPropertyAt(i, 0, type);
-      lastFill = this.getValueOfPropertyAt(i, 0, 'fill');
+      lastFill = this.getValueOfPropertyAt(i, 0, "fill");
       top = this.__charBounds[i][0].top + this.lineHeight;
 
       size = heightOfLine / this.lineHeight;
-      dy = this.getValueOfPropertyAt(i, 0, 'deltaY');
+      dy = this.getValueOfPropertyAt(i, 0, "deltaY");
       for (var j = 0, jlen = line.length; j < jlen; j++) {
         charBox = this.__charBounds[i][j];
         char = line[j];
         currentDecoration = this.getValueOfPropertyAt(i, j, type);
-        currentFill = this.getValueOfPropertyAt(i, j, 'fill');
+        currentFill = this.getValueOfPropertyAt(i, j, "fill");
         _size = this.getHeightOfChar(i, j);
-        _dy = this.getValueOfPropertyAt(i, j, 'deltaY');
+        _dy = this.getValueOfPropertyAt(i, j, "deltaY");
 
-        (!lastDecoration) && (top = charBox.top);
+        !lastDecoration && (top = charBox.top);
 
         if (
-          (currentDecoration !== lastDecoration || currentFill !== lastFill || _size !== size || _dy !== dy)
-          && boxWidth > 0
+          (currentDecoration !== lastDecoration ||
+            currentFill !== lastFill ||
+            _size !== size ||
+            _dy !== dy) &&
+          boxWidth > 0
         ) {
           if (lastDecoration && lastFill) {
             ctx.fillStyle = lastFill;
@@ -606,7 +718,7 @@ class VerticalTextbox extends fabric.IText {
               leftOffset - left + heightOfLine - _size * offsetY,
               topOffset + top,
               this.fontSize / 15,
-              boxHeight,
+              boxHeight
             );
           }
           boxWidth = charBox.width;
@@ -620,8 +732,7 @@ class VerticalTextbox extends fabric.IText {
           size = _size;
           dy = _dy;
           top = charBox.top;
-        }
-        else {
+        } else {
           if (this._isLatin(char)) {
             boxHeight += charBox.kernedWidth;
           } else {
@@ -636,7 +747,7 @@ class VerticalTextbox extends fabric.IText {
           leftOffset - left + heightOfLine - _size * offsetY,
           topOffset + top,
           this.fontSize / 15,
-          boxHeight,
+          boxHeight
         );
       }
     }

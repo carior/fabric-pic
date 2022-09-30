@@ -157,15 +157,15 @@
           <el-form-item label-width="0">
             <el-tag class="font-set" @click="change_undeline">下划线</el-tag>
             <el-tag class="font-set" @click="change_bold">加粗</el-tag>
-            <el-tag class="font-set" @click="change_alignItem('left')"
-              >左对齐</el-tag
-            >
-            <el-tag class="font-set" @click="change_alignItem('center')"
-              >居中</el-tag
-            >
-            <el-tag class="font-set" @click="change_alignItem('right')"
-              >右对齐</el-tag
-            >
+            <el-tag class="font-set" @click="change_alignItem('left')">{{
+              textForm.fontDir == "horizontal" ? "左对齐" : "上对齐"
+            }}</el-tag>
+            <el-tag class="font-set" @click="change_alignItem('center')">{{
+              textForm.fontDir == "horizontal" ? "居中" : "居中对齐"
+            }}</el-tag>
+            <el-tag class="font-set" @click="change_alignItem('right')">{{
+              textForm.fontDir == "horizontal" ? "右对齐" : "下对齐"
+            }}</el-tag>
             <el-popover placement="bottom" title="" width="200" trigger="click">
               <c-progress
                 class="c-progress"
@@ -318,7 +318,7 @@ export default {
         type: "textbox",
         top: 50,
         left: 50,
-        width: 241,
+        width: 242,
         height: 46,
         splitByGrapheme: true, // 拆分中文，可以实现自动换行
         opacity: 1,
@@ -334,6 +334,7 @@ export default {
         editable: true, // 禁止文字编辑
         // verticalAlign: "middle", // 垂直中线
         originX: "right",
+        verticalAlign: "top",
       },
       zoomCounter: 100, // 画布缩放的尺寸
       picDetail: {
@@ -432,6 +433,8 @@ export default {
       fabric.Object.prototype.setControlsVisibility({
         // mb: false, // 下中
         // mt: false, // 上中
+        // ml: false, // 左中
+        // mr: false, // 右中
       });
       console.log(fabric.Object.prototype);
       // 旋转按钮图标修改
@@ -459,6 +462,50 @@ export default {
           render: (...args) => this.renderIcon(...args, deleteImg),
           cornerSize: 24,
         });
+
+      // fabric.Object.prototype.controls.ml =
+      //   fabric.Textbox.prototype.controls.ml =
+      //   new fabric.Control({
+      //     x: -0.5,
+      //     y: 0, // 这里x y 的正负值代表4个角
+      //     cursorStyle: rotateImgUrl,
+      //     actionHandler: fabric.controlsUtils.changeWidth,
+      //     cursorStyle: "pointer",
+      //   });
+
+      // fabric.Object.prototype.controls.mr =
+      //   fabric.Textbox.prototype.controls.mr = new fabric.Control({
+      //     x: 0.5,
+      //     y: 0, // 这里x y 的正负值代表4个角
+      //     cursorStyle: rotateImgUrl,
+      //     actionHandler: fabric.controlsUtils.changeWidth,
+      //     cursorStyle: "pointer",
+      //   });
+
+      //   var finalHandler = fabric.controlsUtils.wrapWithFixedAnchor(this.changeWidthAndHeight);
+
+      //   fabric.Object.prototype.controls.mb =
+      //   fabric.Textbox.prototype.controls.mb =
+      //   new fabric.Control({
+      //     x: 0,
+      //     y: 0.5,
+      //     cursorStyle: rotateImgUrl,
+      //     actionHandler: finalHandler,
+      //     cursorStyleHandler: fabric.controlsUtils.scaleCursorStyleHandler,
+      //     actionName: 'notImportant',
+      //     cursorStyle: "pointer",
+      //   });
+
+      // fabric.Object.prototype.controls.mt =
+      //   fabric.Textbox.prototype.controls.mt = new fabric.Control({
+      //     x: 0,
+      //     y: -0.5,
+      //     cursorStyle: rotateImgUrl,
+      //     actionHandler: finalHandler,
+      //     cursorStyleHandler: fabric.controlsUtils.scaleCursorStyleHandler,
+      //     actionName: 'notImportant',
+      //     cursorStyle: "pointer",
+      //   });
     },
     // 修改类型
     change_type(key) {
@@ -502,32 +549,59 @@ export default {
     change_alignItem(type) {
       const obj = editorCanvas.getActiveObject();
       if (obj) {
-        obj.set("textAlign", type);
-        editorCanvas.renderAll();
+        let mapDir = {
+          left: "top",
+          center: "center",
+          right: "bottom",
+        };
+        if (obj.type === "textbox") {
+          obj.set("textAlign", type);
+          obj.set("vertical-align", mapDir[type]);
+          editorCanvas.renderAll();
+        } else {
+          // obj.set("textAlign", 'right');
+          obj.set("vertical-align", mapDir[type]);
+          VerticalTextbox.fromTextbox(obj, (txtbox) =>
+            this.handleTextFlipped(txtbox, obj)
+          );
+        }
       }
     },
     // 修改字间距 TODO 截流
     change_charSpacing(per) {
       // 1 == 0.6px
       const obj = editorCanvas.getActiveObject();
+      const base = 1.2;
+      let { fontDir } = this.textForm;
       if (obj) {
-        const fontSize = obj.fontSize;
-        const charSpacing = ((per * 0.6) / fontSize) * 1000;
-        console.log(charSpacing);
-        console.log(charSpacing / 1000 + "em");
-        console.log((charSpacing / 1000) * 40 + "px");
-        obj.set("charSpacing", charSpacing);
-        editorCanvas.renderAll();
+        if (fontDir == "horizontal") {
+          const fontSize = obj.fontSize;
+          const charSpacing = ((per * 0.6) / fontSize) * 1000;
+          console.log(charSpacing);
+          console.log(charSpacing / 1000 + "em");
+          console.log((charSpacing / 1000) * 40 + "px");
+          obj.set("charSpacing", charSpacing);
+          editorCanvas.renderAll();
+        } else {
+          const lineHeight = base + per / 100;
+          obj.set("lineHeight", lineHeight);
+          editorCanvas.renderAll();
+        }
       }
     },
     // 修改行间距 TODO 截流
     change_lineHeight(per) {
       const obj = editorCanvas.getActiveObject();
       const base = 1.2;
+      let { fontDir } = this.textForm;
       if (obj) {
-        const lineHeight = base + per / 100;
-        obj.set("lineHeight", lineHeight);
-        editorCanvas.renderAll();
+        if (fontDir == "horizontal") {
+          const lineHeight = base + per / 100;
+          obj.set("lineHeight", lineHeight);
+          editorCanvas.renderAll();
+        } else {
+          // TODO 其实是修改charTop
+        }
       }
       console.log(obj, "change_lineHeight");
     },
@@ -595,6 +669,25 @@ export default {
         editorCanvas.renderAll();
       }
     },
+    changeHeight(eventData, transform, x, y) {
+      var target = transform.target,
+        localPoint = this.getLocalPoint(
+          transform,
+          transform.originX,
+          transform.originY,
+          x,
+          y
+        ),
+        strokePadding =
+          target.strokeWidth / (target.strokeUniform ? target.scaleY : 1),
+        newHeight = Math.abs(localPoint.y / target.scaleY) - strokePadding;
+      target.set("height", Math.max(newHeight, 0));
+      return true;
+    },
+    changeWidthAndHeight(eventData, transform, x, y) {
+      fabric.controlsUtils.changeHeight(eventData, transform, x, y);
+      fabric.controlsUtils.changeWidth(eventData, transform, x, y);
+    },
     changeFontDir2() {
       let { fontDir } = this.textForm;
       const obj = editorCanvas.getActiveObject();
@@ -608,17 +701,25 @@ export default {
         // }
         if (obj.type === "vertical-textbox") {
           console.log("变水平");
+          this.textForm.fontDir = "horizontal";
           obj.toTextbox((txtbox) => this.handleTextFlipped(txtbox, obj));
         } else if (obj.type === "textbox") {
           console.log("变垂直");
+          this.textForm.fontDir = "vertical";
+          // TODO 点击创建文字 点击右边对齐 点击切换文字方向
+          // obj.set("vertical-align", 'right');
+          // obj.set("vertical-align", 'bottom').setCoords();
+          this.change_alignItem("left");
           VerticalTextbox.fromTextbox(obj, (txtbox) =>
             this.handleTextFlipped(txtbox, obj)
           );
+          // setTimeout(() => {
+          //   this.change_alignItem('right')
+          // })
         }
       }
     },
     handleTextFlipped(txtbox, originTxtBox) {
-      console.log('txtbox=>', txtbox);
       const originIndex = editorCanvas.getObjects().indexOf(originTxtBox);
       editorCanvas.startEditing();
       editorCanvas.insertAt(txtbox, originIndex, true);
@@ -628,8 +729,8 @@ export default {
     // 生成模板
     generate_tpl(item, tplName) {
       editorCanvas.clear();
-        this.renderJson(item, tplName);
-    //   this.renderTpl(item, tplName);
+      this.renderJson(item, tplName);
+      //   this.renderTpl(item, tplName);
       this.activeTpl = tplName;
     },
     // TODO 添加文字
@@ -727,8 +828,8 @@ export default {
       // });
       editorCanvas.centerObject(textBox);
       //   setControlVisible 方法删除垂直缩放的操作点，禁止用户垂直缩放。
-      textBox.setControlVisible("mt", false);
-      textBox.setControlVisible("mb", false);
+      // textBox.setControlVisible("mt", false);
+      // textBox.setControlVisible("mb", false);
       editorCanvas.add(textBox).setActiveObject(textBox);
       //   this.textStyleData.width = textBox.width;
       //   this.textStyleData.height = textBox.height;
@@ -779,18 +880,18 @@ export default {
     },
     // 查看更多 TODO这里用来测试
     look_more() {
-      //   var rect = new fabric.Rect({
-      //     left: 0,
-      //     top: 0,
-      //     fill: "yellow",
-      //     width: 200,
-      //     height: 100,
-      //     objectCaching: false,
-      //     stroke: "lightgreen",
-      //     strokeWidth: 0,
-      //   });
-      //   this.testCanvas.add(rect);
-      //   this.testCanvas.setActiveObject(rect);
+      var rect = new fabric.Rect({
+        left: 0,
+        top: 0,
+        fill: "yellow",
+        width: 200,
+        height: 100,
+        objectCaching: false,
+        stroke: "lightgreen",
+        strokeWidth: 0,
+      });
+      this.testCanvas.add(rect);
+      this.testCanvas.setActiveObject(rect);
     },
     // 存模板
     handleSaveTpl() {
@@ -822,16 +923,15 @@ export default {
           }
         }
         // 监听删除按钮
-        let currentActive = editorCanvas.getActiveObject();
-        console.log(currentActive);
-        if (
-          currentActive &&
-          !currentActive.isEditing &&
-          (event.keyCode === 46 || event.keyCode === 8)
-        ) {
-          editorCanvas.remove(currentActive);
-          editorCanvas.renderAll();
-        }
+        // let currentActive = editorCanvas.getActiveObject();
+        // if (
+        //   currentActive &&
+        //   !currentActive.isEditing &&
+        //   (event.keyCode === 46 || event.keyCode === 8)
+        // ) {
+        //   editorCanvas.remove(currentActive);
+        //   editorCanvas.renderAll();
+        // }
       };
     },
   },
