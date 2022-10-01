@@ -218,11 +218,19 @@ import { fontFamilies, fontSizes, fontColor } from "@/utils/fontData";
 import { tpls } from "@/utils/tpl";
 import Canvas from "@/utils/Canvas";
 import VerticalTextbox from "@/utils/VerticalTextbox";
-import { fabric } from "../../../node_modules/fabric/dist/fabric.js";
+import { fabric } from "fabric";
 // import { textVerticalAlign } from "@yassidev/fabric-extensions";
 // fabric
 import CProgress from "@/components/c-progress.vue";
+import { fabricObject } from "./fabricObject";
+import { fabricCommon } from "./edit";
+const LATIN_CHARS_REGX = /[a-zA-Z\.\s]+/;
+const NUMBERIC_REGX = /[0-9]/;
+const BRACKETS_REGX = /[\(\)\]\[\{\}\]]/;
+const JP_BRACKETS =
+  /[ー「」『』（）〔〕［］｛｝｟｠〈〉《》【】〖〗〘〙〚〛゛゜。、・゠＝〜…•‥◦﹅﹆,，“”]/;
 let editorCanvas = "";
+let _fabricObject = "";
 export default {
   name: "EditorImg",
   data() {
@@ -336,6 +344,7 @@ export default {
         originX: "right",
         verticalAlign: "top",
       },
+
       zoomCounter: 100, // 画布缩放的尺寸
       picDetail: {
         // 图片信息
@@ -372,9 +381,10 @@ export default {
     CProgress,
   },
   mounted() {
-    this.init_default_tpl();
+    this.init_data();
+    // this.init_default_tpl();
 
-    this.init_control_style();
+    // this.init_control_style();
 
     this.keycode_zoom();
 
@@ -384,6 +394,12 @@ export default {
     // textVerticalAlign(fabric);
   },
   methods: {
+    init_data() {
+      _fabricObject = fabricObject(this);
+      editorCanvas = fabricCommon(_fabricObject, this);
+      const list = [];
+      editorCanvas.addObject(list);
+    },
     //   初始化默认模板
     init_default_tpl() {
       const imgdefault = new Image();
@@ -399,7 +415,7 @@ export default {
           editorCanvas.preserveObjectStacking = true; // 保持原有层级
           //   editorCanvas.hoverCursor = "defalut"; //悬浮光标改成手型
           img.scale(scale);
-          img.set("selectable", false); // 背景图不可选择
+          // img.set("selectable", false); // 背景图不可选择
           const imgInstance = editorCanvas.add(img); // 添加背景图
           imgInstance.renderAll();
 
@@ -669,25 +685,6 @@ export default {
         editorCanvas.renderAll();
       }
     },
-    changeHeight(eventData, transform, x, y) {
-      var target = transform.target,
-        localPoint = this.getLocalPoint(
-          transform,
-          transform.originX,
-          transform.originY,
-          x,
-          y
-        ),
-        strokePadding =
-          target.strokeWidth / (target.strokeUniform ? target.scaleY : 1),
-        newHeight = Math.abs(localPoint.y / target.scaleY) - strokePadding;
-      target.set("height", Math.max(newHeight, 0));
-      return true;
-    },
-    changeWidthAndHeight(eventData, transform, x, y) {
-      fabric.controlsUtils.changeHeight(eventData, transform, x, y);
-      fabric.controlsUtils.changeWidth(eventData, transform, x, y);
-    },
     changeFontDir2() {
       let { fontDir } = this.textForm;
       const obj = editorCanvas.getActiveObject();
@@ -728,32 +725,120 @@ export default {
     },
     // 生成模板
     generate_tpl(item, tplName) {
-      editorCanvas.clear();
-      this.renderJson(item, tplName);
-      //   this.renderTpl(item, tplName);
+      _fabricObject.clear();
+      // this.renderJson(item, tplName);
+      this.renderTpl(item, tplName);
       this.activeTpl = tplName;
     },
-    // TODO 添加文字
+    // 生成书名模板
     renderTpl(item, tplName) {
-      const imgdefault = new Image();
-      imgdefault.src = item.tplImgs;
-      imgdefault.onload = () => {
-        fabric.Image.fromURL(item.tplImgs, (img) => {
-          const scale = 600 / imgdefault.width;
-          //   editorCanvas = new fabric.Canvas("editorCanvas", {
-          editorCanvas = new Canvas("editorCanvas", {
-            width: imgdefault.width * scale,
-            height: 800,
-          });
-          editorCanvas.preserveObjectStacking = true; // 保持原有层级
-          //   editorCanvas.hoverCursor = "defalut"; //悬浮光标改成手型
-          img.scale(scale);
-          img.set("selectable", false); // 背景图不可选择
-          const imgInstance = editorCanvas.add(img); // 添加背景图
-          imgInstance.renderAll();
-        });
-      };
+      let newtxt = this.bookname_rule(item.bookName);
+      let list = [
+        {
+          title: "背景1",
+          bboxWidth: "600",
+          bboxHeight: "800",
+          order: "0",
+          type: "image",
+          bookImgUrl: item.tplImgs,
+          hasControls: false,
+          isCenter: true,
+        },
+        {
+          bboxWidth: "170",
+          bboxHeight: "61",
+          bboxX1: "124",
+          bboxX2: "566.0",
+          bboxY1: "153",
+          bboxY2: "214.0",
+          order: "1",
+          type: "bookname",
+          layerIsEdit: 1,
+          fontSize: 24,
+          color: "#000000",
+          text: newtxt,
+          fontType: "FZZCHJW--GB1-0",
+          fontBold: "0",
+          fontItalic: "0",
+          hasControls: false,
+          isCenter: true,
+        },
+        {
+          bboxWidth: "200",
+          bboxHeight: "27",
+          bboxX1: "250",
+          bboxX2: "439.0",
+          bboxY1: "240",
+          bboxY2: "267.0",
+          order: "2",
+          type: "authorname",
+          isGif: 0,
+          layerIsEdit: 1,
+          fontSize: 20,
+          color: "#000000",
+          text: `${item.authorName || "示例作者"}  著`,
+          fontType: "FZZCHJW--GB1-0",
+          fontBold: "0",
+          fontItalic: "0",
+          userId: "sn88385718",
+          hasControls: false,
+          isCenter: false,
+        },
+      ];
+      editorCanvas.addObject(list);
     },
+    // 书名生成规则
+    bookname_rule(txt) {
+      let len = txt?.length;
+      if (!len) {
+        return "示例书名";
+      }
+      let obj = {
+        1: { line: 1 },
+        2: { line: 1 },
+        3: { line: 1 },
+        4: { line: 1 },
+        5: { line: 1 },
+        6: { line: 1 },
+        7: { line: 1 },
+        8: { line: 2, wrapIndex: [6] },
+        9: { line: 2, wrapIndex: [7] },
+        10: { line: 2, wrapIndex: [7] },
+        11: { line: 2, wrapIndex: [7] },
+        12: { line: 2, wrapIndex: [7] },
+        13: { line: 2, wrapIndex: [7] },
+        14: { line: 2, wrapIndex: [7] },
+        15: { line: 3, wrapIndex: [7, 13] },
+        16: { line: 3, wrapIndex: [7, 14] },
+        17: { line: 3, wrapIndex: [7, 14] },
+        18: { line: 3, wrapIndex: [7, 14] },
+        19: { line: 3, wrapIndex: [7, 13] },
+        20: { line: 3, wrapIndex: [7, 14] },
+      };
+      let ruleItem = obj[len];
+      if (JP_BRACKETS.test(txt)) {
+        console.log(JP_BRACKETS.exec(txt).index);
+        if (ruleItem.wrapIndex && ruleItem.wrapIndex.length) {
+          ruleItem.wrapIndex.forEach((v, i) => {
+            if (JP_BRACKETS.exec(txt)?.index == v) {
+              let pos = v - 1;
+              txt = txt.slice(0, pos) + "\n" + txt.slice(pos);
+            }
+          });
+        }
+        return txt;
+      } else {
+        if (ruleItem.wrapIndex && ruleItem.wrapIndex.length) {
+          ruleItem.wrapIndex.forEach((v, i) => {
+            let pos = v + i;
+            txt = txt.slice(0, pos) + "\n" + txt.slice(pos);
+          });
+        }
+        return txt;
+      }
+    },
+    // 校验文本
+    check_text({ txt, type }) {},
     renderJson(item) {
       console.log(item, "生成模板");
       const imgInstance = editorCanvas.loadFromJSON(item);

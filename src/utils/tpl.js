@@ -46,7 +46,7 @@ export const tpls = {
         hasControls: false, //不显示控制的那9个按钮
         lockMovementX: true,
         lockMovementY: true,
-        hoverCursor: "defalut"
+        hoverCursor: "defalut",
       },
       {
         type: "textbox",
@@ -95,7 +95,7 @@ export const tpls = {
         path: null,
         direction: "ltr",
         styles: {},
-        editable: false
+        editable: false,
       },
       {
         type: "textbox",
@@ -144,9 +144,11 @@ export const tpls = {
         path: null,
         direction: "ltr",
         styles: {},
-        editable: false
+        editable: false,
       },
     ],
+    authorName: "佛系和尚",
+    bookName: "封面编辑页面吧就是一二三四物流七八九十",
     tplImgs:
       "https://cdn.wtzw.com/bookimg/public/images/cover/a3c6/c1ed18f83a0de69814ac2ee0201260d4_360x480.jpg",
   },
@@ -154,6 +156,8 @@ export const tpls = {
     background: "rgba(255,255,255,1)",
     version: "4.5.1",
     objects: [],
+    authorName: "佛系和尚",
+    bookName: "我有七个大佬哥哥2",
     tplImgs:
       "https://cdn.wtzw.com/bookimg/public/images/cover/a3c6/c1ed18f83a0de69814ac2ee0201260d4_360x480.jpg",
   },
@@ -161,6 +165,8 @@ export const tpls = {
     background: "rgba(255,255,255,1)",
     version: "4.5.1",
     objects: [],
+    authorName: "佛系和尚",
+    bookName: "我有七个大佬哥哥3",
     tplImgs:
       "https://cdn.wtzw.com/bookimg/public/images/cover/a3c6/c1ed18f83a0de69814ac2ee0201260d4_360x480.jpg",
   },
@@ -168,6 +174,8 @@ export const tpls = {
     background: "rgba(255,255,255,1)",
     version: "4.5.1",
     objects: [],
+    authorName: "佛系和尚",
+    bookName: "我有七个大佬哥哥4",
     tplImgs:
       "https://cdn.wtzw.com/bookimg/public/images/cover/a3c6/c1ed18f83a0de69814ac2ee0201260d4_360x480.jpg",
   },
