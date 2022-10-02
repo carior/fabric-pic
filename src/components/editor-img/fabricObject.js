@@ -227,7 +227,6 @@ let fabricObject = function (that, id = "editorCanvas") {
       json,
       () => {
         firstAddToState(true);
-        updateCanvasState();
         undoFinish();
       },
       canvasLoadFromJsonTxtLoadFont
@@ -261,6 +260,19 @@ let fabricObject = function (that, id = "editorCanvas") {
   let setZoom = function (num) {
     _fabricObj.setZoomByCenter(num);
   };
+
+  // 设置缩放
+  let getZoom = function (type) {
+    return _fabricObj.getZoom();
+  };
+
+  // 修改画布尺寸
+  let setDimensions = function (width, height) {
+    _fabricObj.setDimensions({
+      width,
+      height
+    })
+  }
 
   //设置导出json时需要导出的自定义字段
   let setToJsonWithParams = function (list) {
@@ -299,7 +311,7 @@ let fabricObject = function (that, id = "editorCanvas") {
   //加载json到canvas时加载每个元素的事件,用于异步加载字体
   let canvasLoadFromJsonTxtLoadFont = function (o, object) {
     if (
-      object.isType("i-text") &&
+      (object.isType("i-text") || object.isType("textbox")) &&
       o.fontFamily == "" &&
       o.realFontFamily != ""
     ) {
@@ -338,6 +350,8 @@ let fabricObject = function (that, id = "editorCanvas") {
     initialize: initialize,
     getImgBase64Url: getImgBase64Url,
     setZoom: setZoom,
+    getZoom: getZoom,
+    setDimensions: setDimensions,
     setToJsonWithParams: setToJsonWithParams,
     delItem: delItem,
     clear: clear,

@@ -1,6 +1,43 @@
 // canvas 相关操作
 import defaultImg from "@/assets/images/default-book-cover.png";
 let fabricCommon = function (fabricObject, that) {
+  //tojson包含自定义的属性内容
+  let toJsonWithParams = [
+    "realLeft",
+    "realTop",
+    "realType",
+    "realWidth",
+    "realHeight",
+    "order",
+    "oldSrc",
+    "oldId",
+    "oldPictureName",
+    "oldPictureNum",
+    "oldPictType",
+    "oldUserId",
+    "lockUniScaling",
+    "PictureName",
+    "PictureNum",
+    "id",
+    "pictType",
+    "userId",
+    "aCoords",
+    "oldWidth", //图片本身真实宽度
+    "oldHeight", //图片本身真实高度
+    "title",
+    "oldRealUrl",
+    "realUrl",
+    "bboxWidth", //图片要显示的宽度
+    "bboxHeight", //图片要显示的高度
+    "realFontFamily", //用于存储选中的字体,在字体文件加载完成之后替换到fontFamiy
+    "lockScalingY",
+    "lockScalingX",
+    "lockMovementY",
+    "lockMovementX",
+    "layerIsEdit",
+    "isGif",
+    "fontDir",
+  ];
   let _fabricInstance = fabricObject;
   let _canvasObject = _fabricInstance.fabricInstance;
 
@@ -135,6 +172,7 @@ let fabricCommon = function (fabricObject, that) {
       scaleY: scale,
       layerIsEdit: item.layerIsEdit,
       isGif: item.isGif,
+      fontDir: item.fontDir,
     };
     let txtInstabce = _fabricInstance.createTextBox(
       item.text,
@@ -157,7 +195,7 @@ let fabricCommon = function (fabricObject, that) {
     }
   };
 
-  //检查编辑的时候文本内容长度是否符合要求
+  // 编辑文本的时候添加校验
   let checkTxt = function (obj) {
     if (obj && obj.text && obj.realType && that.check_text) {
       that.check_text({ txt: obj.text, type: obj.realType });
@@ -171,12 +209,22 @@ let fabricCommon = function (fabricObject, that) {
     loadDataToCanvas(list);
   };
 
-  // _canvasObject.on("mouse:down", (e) => {
-  // });
+  _canvasObject.on("mouse:down", (opt) => {
+    that.panning = true;
+  });
   // _canvasObject.on("mouse:move", function (e) {
   // });
-  // _canvasObject.on("mouse:up", (e) => {
-  // });
+  _canvasObject.on("mouse:up", (opt) => {
+    that.panning = false;
+    that.showAngle = false;
+  });
+  _canvasObject.on("object:rotating", (opt) => {
+    let currentActive = _fabricInstance.getActiveObj();
+    that.angleBox.angle = parseInt(currentActive.angle);
+    that.showAngle = true;
+    that.angleBox.left = opt.e.x - 470 + 10;
+    that.angleBox.top = opt.e.y + 10;
+  });
   // _canvasObject.on("object:selected", (e) => {
   //   if (e && e.target) {
   //   }
@@ -222,6 +270,7 @@ let fabricCommon = function (fabricObject, that) {
       currentActive.realTop = top;
       currentActive.realLeft = left;
       _canvasObject.renderAll();
+      console.log(currentActive, "currentActive");
       that.setActiveObjectCallback(currentActive);
     }
   };
@@ -251,7 +300,7 @@ let fabricCommon = function (fabricObject, that) {
     } else if (obj.cssName == "width" || obj.cssName == "height") {
       updateWidthOrHeight(obj, currentActive);
     } else {
-      if (currentActive.isType("i-text")) {
+      if (currentActive.isType("i-text") || currentActive.isType("textbox")) {
         //剩下的就是文本类的操作
         updateTxtCss(obj, currentActive);
       } else {
@@ -259,7 +308,6 @@ let fabricCommon = function (fabricObject, that) {
       }
     }
     _canvasObject.renderAll();
-    _fabricInstance.updateCanvasState();
   };
 
   //更新文本类属性值
@@ -335,7 +383,7 @@ let fabricCommon = function (fabricObject, that) {
       currentActive.set("oldWidth", parseInt(e.width)).setCoords();
       currentActive.set("oldHeight", parseInt(e.height)).setCoords();
       _canvasObject.renderAll();
-      _fabricInstance.updateCanvasState();
+      // _fabricInstance.updateCanvasState();
       canvasObjectSelected();
     });
     return;
@@ -441,6 +489,7 @@ let fabricCommon = function (fabricObject, that) {
       obj.order = item.order;
       obj.type = item.realType;
       obj.userId = item.userId;
+      obj.fontDir = item.fontDir;
       result.push(obj);
     });
     return result;
@@ -472,12 +521,43 @@ let fabricCommon = function (fabricObject, that) {
     _fabricInstance.setZoom(value);
   };
 
+  //画布缩放
+  let zoomIt = function (type) {
+    let zoom = _fabricInstance.getZoom(); // 获取画布当前缩放级别
+    let _zoom = 1;
+    if (type == "small") {
+      _zoom = Math.round((zoom - 0.1) * 100) / 100;
+      if (_zoom <= 0.1) {
+        that.$message("不能在缩小了");
+        return;
+      }
+    } else {
+      _zoom = Math.round((zoom + 0.1) * 100) / 100;
+      if (_zoom >= 1.75) {
+        that.$message("不能在放大了");
+        return;
+      }
+    }
+    handlezoomIt(_zoom);
+    // _fabricInstance.setWidth(600 * _zoom);
+    // _fabricInstance.setHeight(800 * _zoom);
+  };
+
+  // 处理缩放画布
+  let handlezoomIt = function (_zoom) {
+    that.zoomCounter = Math.round(_zoom * 100);
+    _fabricInstance.setZoom(_zoom); // 设置画布缩放级别
+    // _fabricInstance.setDimensions(600 * _zoom, 800 * _zoom);
+  };
+
   return {
     addObject: addObject,
     toJSon: toJSon,
     setActiveSelect: setActiveSelect,
     setCss: setCss,
     setZoom: setZoom,
+    handlezoomIt: handlezoomIt,
+    zoomIt: zoomIt,
     createImage: createImage,
     createTxt: createTxt,
     downLoadImage: downLoadImage,
