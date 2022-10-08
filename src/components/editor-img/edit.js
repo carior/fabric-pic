@@ -8,25 +8,13 @@ let fabricCommon = function (fabricObject, that) {
     "realType",
     "realWidth",
     "realHeight",
-    "order",
-    "oldSrc",
-    "oldId",
-    "oldPictureName",
-    "oldPictureNum",
-    "oldPictType",
-    "oldUserId",
+    "order", // 序号
     "lockUniScaling",
-    "PictureName",
-    "PictureNum",
     "id",
-    "pictType",
-    "userId",
-    "aCoords",
     "oldWidth", //图片本身真实宽度
     "oldHeight", //图片本身真实高度
-    "title",
-    "oldRealUrl",
-    "realUrl",
+    "title", // 标题
+    "realUrl", // 底图的url
     "bboxWidth", //图片要显示的宽度
     "bboxHeight", //图片要显示的高度
     "realFontFamily", //用于存储选中的字体,在字体文件加载完成之后替换到fontFamiy
@@ -34,9 +22,9 @@ let fabricCommon = function (fabricObject, that) {
     "lockScalingX",
     "lockMovementY",
     "lockMovementX",
-    "layerIsEdit",
-    "isGif",
-    "fontDir",
+    "editable", // 文本框是否可以编辑
+    "fontDir", // 文字方向
+    "text", // 文本内容
   ];
   let _fabricInstance = fabricObject;
   let _canvasObject = _fabricInstance.fabricInstance;
@@ -74,7 +62,7 @@ let fabricCommon = function (fabricObject, that) {
   let loadDataToCanvas = function (dataList) {
     if (dataList && dataList.length > 0) {
       let obj = dataList[0];
-      if (obj.type == "image") {
+      if (obj.type == "image" || obj.type == "logo") {
         //图片
         createImage(obj, dataList);
       } else {
@@ -92,13 +80,9 @@ let fabricCommon = function (fabricObject, that) {
     let item = obj;
     let url = item.bookImgUrl;
     let imgConfig = {
-      top: top,
+      left: parseInt(item.bboxWidth) / 2 + item.left,
+      top: parseInt(item.bboxHeight) / 2 + item.top,
       order: order,
-      id: item.id,
-      PictureName: item.PictureName,
-      PictureNum: item.motherSetNumRef,
-      userId: item.userId,
-      pictType: item.pictType,
       angle: 0,
       realLeft: parseInt(item.bboxX1),
       realTop: parseInt(item.bboxY1),
@@ -111,16 +95,14 @@ let fabricCommon = function (fabricObject, that) {
       lockScalingX: false,
       lockMovementY: false,
       lockMovementX: false,
-      layerIsEdit: item.layerIsEdit,
-      isGif: item.isGif,
     };
     _fabricInstance
       .createImage(url, imgConfig, item.isCenter, item.hasControls)
       .then((img) => {
-        if (!item.bboxWidth) {
-          setActiveSelect(order);
-          canvasObjectSelected();
-        }
+        // if (!item.bboxWidth) {
+        //   setActiveSelect(order);
+        //   canvasObjectSelected();
+        // }
         if (dataList.length) {
           loadDataCallback(dataList);
         }
@@ -140,14 +122,8 @@ let fabricCommon = function (fabricObject, that) {
     }
     let scale = !item.fontSize || item.fontSize >= 12 ? 1 : item.fontSize / 12;
     let txtConfig = {
-      left:
-        parseInt(item.bboxX1) +
-        parseInt(item.bboxWidth) / 2 +
-        _offsetObj.offsetX, //+parseInt(item.bboxWidth)/2
-      top:
-        parseInt(item.bboxY1) +
-        parseInt(item.bboxHeight) / 2 +
-        _offsetObj.offsetY, //+parseInt(item.bboxWidth)/2
+      left: parseInt(item.bboxWidth) / 2 + item.left,
+      top: parseInt(item.bboxHeight) / 2 + item.top,
       order: order,
       fill: item.color, //content.color
       fontSize: item.fontSize ? item.fontSize : 20,
@@ -162,16 +138,13 @@ let fabricCommon = function (fabricObject, that) {
       title: item.title,
       realWidth: parseInt(item.bboxWidth),
       realHeight: parseInt(item.bboxHeight),
-      // lockScalingY: true,
-      // lockScalingX: true,
       lockMovementY: false,
       lockMovementX: false,
       width: parseInt(item.bboxWidth),
       height: parseInt(item.bboxHeight),
       scaleX: scale,
       scaleY: scale,
-      layerIsEdit: item.layerIsEdit,
-      isGif: item.isGif,
+      editable: item.editable,
       fontDir: item.fontDir,
     };
     let txtInstabce = _fabricInstance.createTextBox(
@@ -197,9 +170,10 @@ let fabricCommon = function (fabricObject, that) {
 
   // 编辑文本的时候添加校验
   let checkTxt = function (obj) {
-    if (obj && obj.text && obj.realType && that.check_text) {
-      that.check_text({ txt: obj.text, type: obj.realType });
-    }
+    // if (obj && obj.text && obj.realType && that.check_text) {
+    //   that.check_text({ txt: obj.text, type: obj.realType });
+    // }
+    that.check_text({ txt: obj.text, type: obj.realType });
   };
 
   //加载数据到画布的回调函数,适用于loadDataToCanvas方法
@@ -212,8 +186,59 @@ let fabricCommon = function (fabricObject, that) {
   _canvasObject.on("mouse:down", (opt) => {
     that.panning = true;
   });
-  // _canvasObject.on("mouse:move", function (e) {
-  // });
+  _canvasObject.on("mouse:move", function (e) {
+    // 拖动限制
+    let currentActive = _fabricInstance.getActiveObj();
+    if (!currentActive) return;
+    if (currentActive?.hasControls || currentActive?.type != "image") {
+      // 阻止对象移动到画布外面
+      let padding = 0; // 内容距离画布的空白宽度，主动设置
+      var obj = e.target;
+      if (
+        obj.currentHeight > obj.canvas.height - padding * 2 ||
+        obj.currentWidth > obj.canvas.width - padding * 2
+      ) {
+        return;
+      }
+      obj.setCoords();
+      if (
+        obj.getBoundingRect().top < padding ||
+        obj.getBoundingRect().left < padding
+      ) {
+        obj.top = Math.max(
+          obj.top,
+          obj.top - obj.getBoundingRect().top + padding + 100 // 100是假设的logo高度
+        );
+        obj.left = Math.max(
+          obj.left,
+          obj.left - obj.getBoundingRect().left + padding
+        );
+      }
+      if (
+        obj.getBoundingRect().top + obj.getBoundingRect().height >
+          obj.canvas.height - padding ||
+        obj.getBoundingRect().left + obj.getBoundingRect().width >
+          obj.canvas.width - padding
+      ) {
+        obj.top = Math.min(
+          obj.top,
+          obj.canvas.height -
+            obj.getBoundingRect().height +
+            obj.top -
+            obj.getBoundingRect().top -
+            padding
+        );
+        obj.left = Math.min(
+          obj.left,
+          obj.canvas.width -
+            obj.getBoundingRect().width +
+            obj.left -
+            obj.getBoundingRect().left -
+            padding
+        );
+      }
+    }
+  });
   _canvasObject.on("mouse:up", (opt) => {
     that.panning = false;
     that.showAngle = false;
@@ -347,47 +372,7 @@ let fabricCommon = function (fabricObject, that) {
   };
 
   //更换图片
-  let updatePic = function (obj, currentActive) {
-    let src = currentActive.getSrc();
-    //判断是否更换的同一张
-    if (src == obj.cssValue) {
-      return;
-    }
-    currentActive.set("oldSrc", src); //跨域转换后的url
-    currentActive.set("oldId", currentActive.id);
-    currentActive.set("oldPictureName", currentActive.PictureName);
-    currentActive.set("oldPictureNum", currentActive.PictureNum);
-    currentActive.set("oldPictType", currentActive.pictType);
-    currentActive.set("oldUserId", currentActive.userId);
-    let content = obj.cssValue;
-    currentActive.set({
-      id: content.id,
-      PictureName: content.PictureName,
-      PictureNum: content.motherSetNumRef,
-      userId: content.userId,
-      pictType: content.type,
-      oldRealUrl: currentActive.realUrl, //替换前的真实url
-      realUrl: content.bookImgUrl, //替换后的真实url
-    });
-    let width = currentActive.realWidth;
-    let url =
-      "./app/bannerMaterialManager/getPicture?pictureUrl=" + content.bookImgUrl; //跨域转换后的url
-    currentActive.setSrc(url, function (e) {
-      let scaleX = width / e.width;
-      let scaleY = scaleX;
-      if (currentActive.realType == "1-1") {
-        scaleY = currentActive.realHeight / e.height;
-      }
-      currentActive.set("scaleX", scaleX).setCoords();
-      currentActive.set("scaleY", scaleY).setCoords();
-      currentActive.set("oldWidth", parseInt(e.width)).setCoords();
-      currentActive.set("oldHeight", parseInt(e.height)).setCoords();
-      _canvasObject.renderAll();
-      // _fabricInstance.updateCanvasState();
-      canvasObjectSelected();
-    });
-    return;
-  };
+  let updatePic = function (obj, currentActive) {};
 
   //更新left/top的值
   let updateLeftOrTop = function (obj, currentActive) {
@@ -452,47 +437,42 @@ let fabricCommon = function (fabricObject, that) {
 
   //导出json数据
   let toJSon = function () {
-    let canvasList = _canvasObject.toJSON(toJsonWithParams).objects;
-    let result = [];
-    canvasList.forEach((item) => {
-      console.log(item);
-      let obj = {};
-      let width = 0;
-      let height = 0;
-      if (item.realType.indexOf("3-") < 0) {
-        width = item.oldWidth * item.scaleX;
-        height = item.oldHeight * item.scaleY;
-        obj.bookImgUrl = item.realUrl;
-        obj.motherSetNumRef = item.PictureNum;
-        obj.pictType = item.pictType;
-        obj.PictureName = item.PictureName;
-        obj.id = item.id;
-        obj.PictureName = item.PictureName;
-      } else {
-        width = item.width ? item.width : 0;
-        height = item.height ? item.height : 0;
-        obj.fontType = item.realFontFamily;
-        obj.color = item.fill;
-        obj.fontBold = item.fontWeight == "bold" ? 1 : 0;
-        obj.fontItalic = item.fontStyle != "normal" ? 1 : 0;
-        obj.fontSize = item.fontSize;
-        obj.text = item.text;
-      }
-      obj.bboxWidth = width;
-      obj.bboxHeight = height;
-      obj.bboxX1 = item.realLeft;
-      obj.bboxX2 = item.realLeft + width;
-      obj.bboxY1 = item.realTop;
-      obj.bboxY2 = item.realTop + height;
-      obj.isGif = item.isGif;
-      obj.layerIsEdit = item.layerIsEdit;
-      obj.order = item.order;
-      obj.type = item.realType;
-      obj.userId = item.userId;
-      obj.fontDir = item.fontDir;
-      result.push(obj);
-    });
-    return result;
+    // let canvasList = _canvasObject.toJSON(toJsonWithParams).objects;
+    // let result = [];
+    // canvasList.forEach((item) => {
+    //   console.log(item, 'item');
+    //   let obj = {};
+    //   let width = 0;
+    //   let height = 0;
+    //   if (item.realType.indexOf("3-") < 0) {
+    //     width = item.oldWidth * item.scaleX;
+    //     height = item.oldHeight * item.scaleY;
+    //     obj.bookImgUrl = item.realUrl;
+    //     obj.id = item.id;
+    //   } else {
+    //     width = item.width ? item.width : 0;
+    //     height = item.height ? item.height : 0;
+    //     obj.fontType = item.realFontFamily;
+    //     obj.color = item.fill;
+    //     obj.fontBold = item.fontWeight == "bold" ? 1 : 0;
+    //     obj.fontItalic = item.fontStyle != "normal" ? 1 : 0;
+    //     obj.fontSize = item.fontSize;
+    //     obj.text = item.text;
+    //   }
+    //   obj.bboxWidth = width;
+    //   obj.bboxHeight = height;
+    //   obj.bboxX1 = item.realLeft;
+    //   obj.bboxX2 = item.realLeft + width;
+    //   obj.bboxY1 = item.realTop;
+    //   obj.bboxY2 = item.realTop + height;
+    //   obj.editable = item.editable;
+    //   obj.order = item.order;
+    //   obj.type = item.realType;
+    //   obj.fontDir = item.fontDir;
+    //   result.push(obj);
+    // });
+    // return result;
+    return _canvasObject.toObject();
   };
 
   //导出图片
@@ -514,6 +494,12 @@ let fabricCommon = function (fabricObject, that) {
     document.body.appendChild(dlLink);
     dlLink.click();
     document.body.removeChild(dlLink);
+  };
+
+  // 获取图片的url
+  let getUrl = function () {
+    let imgURL = _fabricInstance.getImgBase64Url();
+    return imgURL;
   };
 
   //画布缩放
@@ -561,6 +547,7 @@ let fabricCommon = function (fabricObject, that) {
     createImage: createImage,
     createTxt: createTxt,
     downLoadImage: downLoadImage,
+    getUrl: getUrl,
     undo: _fabricInstance.undo,
     redo: _fabricInstance.redo,
     initialize: _fabricInstance.initialize,

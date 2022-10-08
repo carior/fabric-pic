@@ -71,16 +71,17 @@ let fabricObject = function (that, id = "editorCanvas") {
     ctx.drawImage(img, -size / 2, -size / 2, size, size);
     ctx.restore();
   };
-  fabric.Object.prototype.controls.deleteControl =
-    fabric.Textbox.prototype.controls.deleteControl = new fabric.Control({
-      x: 0.5,
-      y: -0.5,
-      offsetY: -20,
-      cursorStyle: "pointer",
-      mouseUpHandler: deleteObject,
-      render: (...args) => renderIcon(...args, deleteImg),
-      cornerSize: 24,
-    });
+  // TODO 暂时不需要删除按钮
+  // fabric.Object.prototype.controls.deleteControl =
+  //   fabric.Textbox.prototype.controls.deleteControl = new fabric.Control({
+  //     x: 0.5,
+  //     y: -0.5,
+  //     offsetY: -20,
+  //     cursorStyle: "pointer",
+  //     mouseUpHandler: deleteObject,
+  //     render: (...args) => renderIcon(...args, deleteImg),
+  //     cornerSize: 24,
+  //   });
 
   const lockIcon = {
     width: 22,
@@ -136,7 +137,7 @@ let fabricObject = function (that, id = "editorCanvas") {
   ) {
     return new Promise((resolve, reject) => {
       try {
-        let imgInstance = new fabric.Image.fromURL(url, function (img) {
+        new fabric.Image.fromURL(url, function (img) {
           img.set(imgConfig);
           img
             .set({
@@ -164,13 +165,13 @@ let fabricObject = function (that, id = "editorCanvas") {
             img.set("lockMovementX", true);
             img.set("lockMovementY", true);
           }
-          // if (centerObject) {
+          if (centerObject) {
             _fabricObj.centerObject(img);
-          // }
+          }
           resolve(img);
           _fabricObj.add(img);
           _fabricObj.renderAll();
-        });
+        }, { crossOrigin: 'anonymous' });
       } catch (e) {
         reject();
       }
@@ -179,7 +180,10 @@ let fabricObject = function (that, id = "editorCanvas") {
 
   /* 创建文本 */
   const _createTextBox = function (title, txtConfig, centerObject = false) {
-    let textInstance = new fabric.Textbox(title, {...txtConfig, splitByGrapheme: true});
+    let textInstance = new fabric.Textbox(title, {
+      ...txtConfig,
+      splitByGrapheme: true,
+    });
     if (centerObject) {
       _fabricObj.centerObject(textInstance);
     }
@@ -270,9 +274,9 @@ let fabricObject = function (that, id = "editorCanvas") {
   let setDimensions = function (width, height) {
     _fabricObj.setDimensions({
       width,
-      height
-    })
-  }
+      height,
+    });
+  };
 
   //设置导出json时需要导出的自定义字段
   let setToJsonWithParams = function (list) {
@@ -289,9 +293,9 @@ let fabricObject = function (that, id = "editorCanvas") {
     }
   };
   // 清空画布
-  let clear = function() {
+  let clear = function () {
     _fabricObj.clear();
-  }
+  };
 
   //获取当前选中的元素
   let getActiveObj = function () {

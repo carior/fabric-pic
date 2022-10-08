@@ -32,7 +32,6 @@
                   :src="img.tplImgs"
                   alt=""
                 />
-                <!-- <img @click="generate_tpl" src="../../assets/images/50.jpg" alt=""> -->
               </li>
             </ul>
           </div>
@@ -47,7 +46,6 @@
             <ul class="tpls">
               <li v-for="(img, i) in item.tpls" :key="i">
                 <img @click="generate_tpl(img)" :src="img.tplImgs" alt="" />
-                <!-- <img @click="generate_tpl" src="../../assets/images/50.jpg" alt=""> -->
               </li>
             </ul>
           </div>
@@ -122,6 +120,9 @@
           <el-button class="add-text" type="primary" @click="add_text"
             >添加文字</el-button
           >
+          <el-button class="add-text" type="primary" @click="add_pic"
+            >添加图片</el-button
+          >
         </div>
         <el-form ref="form" label-width="100px">
           <el-form-item label="字体：">
@@ -186,9 +187,9 @@
               />
               <el-tag slot="reference" class="font-set">行间距</el-tag>
             </el-popover>
-            <el-tag class="font-set" @click="changeFontDir2"
+            <!-- <el-tag class="font-set" @click="changeFontDir2"
               >字体方向切换</el-tag
-            >
+            > -->
           </el-form-item>
           <el-form-item label="字体颜色：">
             <el-color-picker
@@ -216,7 +217,7 @@
 // https://s1.ax1x.com/2022/09/22/xFBLmn.jpg
 import { fontFamilies, fontSizes } from "@/utils/fontData";
 import { tpls } from "@/utils/tpl";
-import VerticalTextbox from "@/utils/VerticalTextbox";
+// import VerticalTextbox from "@/utils/VerticalTextbox";
 import { fabric } from "fabric";
 // import { textVerticalAlign } from "@yassidev/fabric-extensions";
 import CProgress from "@/components/c-progress.vue";
@@ -311,7 +312,7 @@ export default {
         "hsla(209, 100%, 56%, 0.73)",
         "#c7158577",
       ],
-      showSaveBtn: true,
+      showSaveBtn: false,
       testCanvas: null,
       deleteImg: null,
       rotateImg: null,
@@ -408,13 +409,8 @@ export default {
       let num,
         obj = {};
       if (type == "text") {
-        num = this.textForm[type];
-        let newTxt = this.copyRightLengthCheck({
-          txt: num,
-          type: this.textForm.realType,
-        });
-        this.textForm.text = newTxt;
-        this.textForm[type] = newTxt;
+        let obj = { cssName: "text", cssValue: "请输入文字" };
+        editorCanvas.setCss(obj);
         return;
       }
       switch (type) {
@@ -459,7 +455,7 @@ export default {
       this.updateCanvas("fontFamily");
     },
     // 修改字体的对齐方式
-    change_alignItem(type){
+    change_alignItem(type) {
       this.textForm.textAlign = type;
       this.updateCanvas("textAlign");
     },
@@ -502,44 +498,6 @@ export default {
         // TODO 其实是修改charTop
       }
     },
-    changeFontDir2() {
-      let { fontDir } = this.textForm;
-      const obj = editorCanvas.getActiveObject();
-      if (obj) {
-        // if (fontDir == "horizontal") {
-        //     VerticalTextbox.fromTextbox(obj, txtbox => handleTextFlipped(txtbox, obj))
-        //     this.textForm.fontDir = "vertical";
-        // }else {
-        //     obj.toTextbox(txtbox => handleTextFlipped(txtbox, obj))
-        //     this.textForm.fontDir = "horizontal";
-        // }
-        if (obj.type === "vertical-textbox") {
-          console.log("变水平");
-          this.textForm.fontDir = "horizontal";
-          obj.toTextbox((txtbox) => this.handleTextFlipped(txtbox, obj));
-        } else if (obj.type === "textbox") {
-          console.log("变垂直");
-          this.textForm.fontDir = "vertical";
-          // TODO 点击创建文字 点击右边对齐 点击切换文字方向
-          // obj.set("vertical-align", 'right');
-          // obj.set("vertical-align", 'bottom').setCoords();
-          this.change_alignItem("left");
-          VerticalTextbox.fromTextbox(obj, (txtbox) =>
-            this.handleTextFlipped(txtbox, obj)
-          );
-          // setTimeout(() => {
-          //   this.change_alignItem('right')
-          // })
-        }
-      }
-    },
-    handleTextFlipped(txtbox, originTxtBox) {
-      const originIndex = editorCanvas.getObjects().indexOf(originTxtBox);
-      editorCanvas.startEditing();
-      editorCanvas.insertAt(txtbox, originIndex, true);
-      editorCanvas.stopEditing();
-      editorCanvas.setActiveObject(txtbox);
-    },
     // 生成模板
     generate_tpl(item, tplName) {
       _fabricObject.clear();
@@ -561,6 +519,19 @@ export default {
           hasControls: false,
           isCenter: true,
         },
+        // {
+        //   title: "logo图片",
+        //   bboxWidth: "294",
+        //   bboxHeight: "80",
+        //   order: "1",
+        //   type: "logo",
+        //   bookImgUrl:
+        //     "https://cdn.wtzw.com/bookimg/public/images/cover/a3c6/8346c1ab336f8e6d0d13fb205641793a_360x480.jpg",
+        //   hasControls: true,
+        //   isCenter: false,
+        //   top: 20,
+        //   left: 300,
+        // },
         {
           bboxWidth: "170",
           bboxHeight: "61",
@@ -568,9 +539,9 @@ export default {
           bboxX2: "566.0",
           bboxY1: "153",
           bboxY2: "214.0",
-          order: "1",
+          order: "2",
           type: "bookname",
-          layerIsEdit: 1,
+          editable: true,
           fontSize: 24,
           color: "#000000",
           text: newtxt,
@@ -588,20 +559,20 @@ export default {
           bboxX2: "439.0",
           bboxY1: "240",
           bboxY2: "267.0",
-          order: "2",
+          order: "3",
           type: "authorname",
-          isGif: 0,
-          layerIsEdit: 1,
+          editable: false,
           fontSize: 20,
           color: "#000000",
           text: `${item.authorName || "示例作者"}  著`,
           fontType: "FZZCHJW--GB1-0",
           fontBold: "0",
           fontItalic: "0",
-          userId: "sn88385718",
           hasControls: false,
           isCenter: false,
           fontDir: "horizontal",
+          top: 500,
+          left: 300,
         },
       ];
       editorCanvas.addObject(list);
@@ -656,19 +627,23 @@ export default {
         return txt;
       }
     },
-    // 校验文本
-    check_text({ txt, type }) {},
+    // 校验文本是否为空
+    check_text({ txt, type }) {
+      if (!txt) {
+        this.updateCanvas("text");
+      }
+    },
 
     // 渲染json数据
-    renderJson(item) {
-      console.log(item, "生成模板");
-      const imgInstance = editorCanvas.loadFromJSON(item);
-      console.log(imgInstance, "imgInstance");
-      this.picDetail.width = imgInstance.width;
-      this.picDetail.height = imgInstance.height;
-      imgInstance.renderAll();
-      this.showSaveBtn = false;
-    },
+    // renderJson(item) {
+    //   console.log(item, "生成模板");
+    //   const imgInstance = editorCanvas.loadFromJSON(item);
+    //   console.log(imgInstance, "imgInstance");
+    //   this.picDetail.width = imgInstance.width;
+    //   this.picDetail.height = imgInstance.height;
+    //   imgInstance.renderAll();
+    //   this.showSaveBtn = false;
+    // },
     // 添加文字
     add_text() {
       const list = [
@@ -682,7 +657,6 @@ export default {
           order: "2",
           type: "authorname",
           isGif: 0,
-          layerIsEdit: 1,
           fontSize: 20,
           color: "#000000",
           text: `双击编辑文字`,
@@ -693,7 +667,11 @@ export default {
           hasControls: false,
           isCenter: false,
           fontDir: "horizontal",
-        }]
+          editable: true,
+          top: 0,
+          left: 0,
+        },
+      ];
       editorCanvas.addObject(list);
       // let textBox = new fabric.IText('双击编辑文字', this.textStyleData);
       // let textBox = new fabric.Textbox("双击编辑文字", this.textStyleData);
@@ -707,6 +685,25 @@ export default {
       // editorCanvas.add(textBox).setActiveObject(textBox);
       //   this.textStyleData.width = textBox.width;
       //   this.textStyleData.height = textBox.height;
+    },
+    // 添加图片
+    add_pic() {
+      const list = [
+        {
+          title: "logo图片",
+          bboxWidth: "294",
+          bboxHeight: "80",
+          order: "1",
+          type: "logo",
+          bookImgUrl:
+            "https://cdn.wtzw.com/bookimg/public/images/cover/a3c6/8346c1ab336f8e6d0d13fb205641793a_360x480.jpg",
+          hasControls: true,
+          isCenter: false,
+          top: 20,
+          left: 300,
+        },
+      ];
+      editorCanvas.addObject(list);
     },
     // 清空画布
     resetCanvas() {
@@ -752,12 +749,13 @@ export default {
     },
     // 存模板
     handleSaveTpl() {
-      const json = editorCanvas.toDatalessJSON();
-      const toJSON = editorCanvas.toJSON();
-      const toObject = editorCanvas.toObject();
-      console.log(json, "json");
+      // const toDatalessJSON = editorCanvas.toDatalessJSON();
+      const toJSON = editorCanvas.toJSon();
+      // const toObject = editorCanvas.toObject();
+      // console.log(toDatalessJSON, "toDatalessJSON");
       console.log(toJSON, "toJSON");
-      console.log(toObject, "toObject");
+      // console.log(toObject, "toObject");
+      let url = editorCanvas.getUrl()
     },
     // 移除模板
     handle_remove_tpl() {
