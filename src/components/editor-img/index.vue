@@ -129,13 +129,13 @@
             <el-select
               v-model="textForm.fontFamilies"
               placeholder="请选择字体"
-              @change="updateCanvas('fontFamily')"
+              @change="fontChange"
             >
               <el-option
                 v-for="item in fontFamilies"
                 :key="item.value"
                 :label="item.label"
-                :value="item.value"
+                :value="item.fontType"
               >
               </el-option>
             </el-select>
@@ -286,7 +286,7 @@ export default {
       fontFamilies,
       fontSizes,
       textForm: {
-        fontFamilies: "'Microsoft Yahei', cursive",
+        fontFamilies: "",
         fontSize: 20,
         fill: "rgba(255, 69, 0, 1)",
         fontDir: "horizontal",
@@ -370,7 +370,14 @@ export default {
         top: 0,
         angle: 0,
       },
-      font_data: [],
+      font_data: [
+        // {
+        //   name: "字小魂扶摇手书",
+        //   fontType: "zxhfyss",
+        //   type: "字小魂扶摇手书",
+        //   fontUrl: "",
+        // },
+      ],
       fontFamily: "",
       underline: false, //下划线
       fontUrl: "", //选择字体之后对应的url
@@ -383,7 +390,6 @@ export default {
     this.init_data();
 
     this.keycode_zoom();
-
     var canvas = new fabric.Canvas("c");
     this.testCanvas = canvas;
     // textVerticalAlign(fabric);
@@ -394,6 +400,7 @@ export default {
       editorCanvas = fabricCommon(_fabricObject, this);
       const list = [];
       editorCanvas.addObject(list);
+      editorCanvas.initialize();
     },
     setActiveObjectCallback(obj) {
       this.textForm = {};
@@ -449,6 +456,8 @@ export default {
       let obj = this.font_data.filter((res) => {
         return res.fontType == fontType;
       });
+      this.fontFamily = fontType
+      console.log(fontType,'fontType');
       if (obj && obj.length > 0) {
         this.fontUrl = obj[0].fontUrl;
       }
@@ -513,11 +522,14 @@ export default {
           title: "背景1",
           bboxWidth: "600",
           bboxHeight: "800",
+          top: 0,
+          left: 0,
           order: "0",
           type: "image",
+          realType: "image",
           bookImgUrl: item.tplImgs,
           hasControls: false,
-          isCenter: true,
+          isCenter: false,
         },
         // {
         //   title: "logo图片",
@@ -535,37 +547,31 @@ export default {
         {
           bboxWidth: "170",
           bboxHeight: "61",
-          bboxX1: "124",
-          bboxX2: "566.0",
-          bboxY1: "153",
-          bboxY2: "214.0",
           order: "2",
           type: "bookname",
           editable: true,
           fontSize: 24,
           color: "#000000",
           text: newtxt,
-          fontType: "FZZCHJW--GB1-0",
+          fontType: "zxhfyss",
           fontBold: "0",
           fontItalic: "0",
-          hasControls: false,
-          isCenter: true,
+          hasControls: true,
+          top: 400,
+          left: 300,
+          isCenter: false,
           fontDir: "horizontal",
         },
         {
           bboxWidth: "200",
           bboxHeight: "27",
-          bboxX1: "250",
-          bboxX2: "439.0",
-          bboxY1: "240",
-          bboxY2: "267.0",
           order: "3",
           type: "authorname",
           editable: false,
           fontSize: 20,
           color: "#000000",
           text: `${item.authorName || "示例作者"}  著`,
-          fontType: "FZZCHJW--GB1-0",
+          fontType: "zxhfyss",
           fontBold: "0",
           fontItalic: "0",
           hasControls: false,
@@ -650,17 +656,13 @@ export default {
         {
           bboxWidth: "200",
           bboxHeight: "27",
-          bboxX1: "250",
-          bboxX2: "439.0",
-          bboxY1: "240",
-          bboxY2: "267.0",
           order: "2",
           type: "authorname",
           isGif: 0,
           fontSize: 20,
           color: "#000000",
           text: `双击编辑文字`,
-          fontType: "FZZCHJW--GB1-0",
+          fontType: "zxhfyss",
           fontBold: "0",
           fontItalic: "0",
           userId: "sn88385718",
@@ -699,8 +701,8 @@ export default {
             "https://cdn.wtzw.com/bookimg/public/images/cover/a3c6/8346c1ab336f8e6d0d13fb205641793a_360x480.jpg",
           hasControls: true,
           isCenter: false,
-          top: 20,
-          left: 300,
+          top: 0,
+          left: 0,
         },
       ];
       editorCanvas.addObject(list);
@@ -722,13 +724,10 @@ export default {
       } else {
         zoom = value / 100;
       }
-      // editorCanvas.setZoom(zoom); // 设置画布缩放级别
-      // editorCanvas.setWidth(600 * zoom);
-      // editorCanvas.setHeight(800 * zoom);
 
       editorCanvas.handlezoomIt(zoom);
     },
-    // 缩放画布
+    // 点击-号+号缩放画布
     zoomIt(type) {
       editorCanvas.zoomIt(type);
     },
@@ -755,7 +754,7 @@ export default {
       // console.log(toDatalessJSON, "toDatalessJSON");
       console.log(toJSON, "toJSON");
       // console.log(toObject, "toObject");
-      let url = editorCanvas.getUrl()
+      let url = editorCanvas.getUrl();
     },
     // 移除模板
     handle_remove_tpl() {

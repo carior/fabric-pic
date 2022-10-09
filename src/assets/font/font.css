@@ -1,0 +1,20 @@
+@font-face {
+    font-family: 'zxhfyss'; /*重命名字体名字*/ 
+    src: url('./字小魂扶摇手书.ttf');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'zxhrzh'; /*重命名字体名字*/ 
+    src: url('./字小魂睿智黑.ttf');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'zh145h-zkxhh'; /*重命名字体名字*/ 
+    src: url('./字魂145号-正酷雪花黑.ttf');
+    font-weight: normal;
+    font-style: normal;
+}

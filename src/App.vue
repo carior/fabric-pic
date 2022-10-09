@@ -19,6 +19,7 @@ export default {
 };
 </script>
 <style>
+@import url("./assets/font/font.css");
 * {
   padding: 0;
   margin: 0;

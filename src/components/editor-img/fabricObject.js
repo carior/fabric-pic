@@ -42,8 +42,8 @@ let fabricObject = function (that, id = "editorCanvas") {
     centeredRotation: true, //旋转按钮旋转是否是左上角为圆心旋转
     transparentCorners: false, //激活状态角落的图标是否透明
     rotatingPointOffset: 20, //旋转距旋转体的距离
-    originX: "center",
-    originY: "center",
+    // originX: "center",
+    // originY: "center",
     lockUniScaling: false, //只显示四角的操作
     hasRotatingPoint: true, //是否显示旋转按钮
     showLock: true, // 控制是否显示lock
@@ -112,10 +112,12 @@ let fabricObject = function (that, id = "editorCanvas") {
 
   //对fabric.Canvas扩展
   fabric.Canvas.prototype.setZoomByCenter = function (value) {
-    this.zoomToPoint(
-      new fabric.Point(_fabricObj.width / 2, _fabricObj.height / 2),
-      value
-    );
+    // this.zoomToPoint(
+    //   // new fabric.Point(_fabricObj.width / 2, _fabricObj.height / 2),
+    //   new fabric.Point(0, 0),
+    //   value
+    // );
+    this.setZoom(value);
     return this;
   };
 
@@ -125,7 +127,7 @@ let fabricObject = function (that, id = "editorCanvas") {
   /* 初始化 */
   const _initConfig = function (config = {}) {
     Object.assign(_fabricConfig, config);
-    fabricObj.setOptions(_fabricConfig);
+    _fabricObj.setOptions(_fabricConfig);
   };
 
   /* 创建图片 */
@@ -133,45 +135,41 @@ let fabricObject = function (that, id = "editorCanvas") {
     url,
     imgConfig,
     centerObject = false,
-    hasControls = true
+    hasControls = true,
+    isBackground = false
   ) {
     return new Promise((resolve, reject) => {
       try {
-        new fabric.Image.fromURL(url, function (img) {
-          img.set(imgConfig);
-          img
-            .set({
-              scaleX: imgConfig.bboxWidth
-                ? parseInt(imgConfig.bboxWidth) / img.width
-                : 1,
-              scaleY: imgConfig.bboxHeight
-                ? parseInt(imgConfig.bboxHeight) / img.height
-                : 1,
-              realWidth: imgConfig.bboxWidth
-                ? parseInt(imgConfig.bboxWidth)
-                : parseInt(img.width),
-              realHeight: imgConfig.bboxHeight
-                ? parseInt(imgConfig.bboxHeight)
-                : parseInt(img.height),
-              oldWidth: parseInt(img.width),
-              oldHeight: parseInt(img.height),
-            })
-            .setCoords();
-          if (!hasControls) {
-            img.hasControls = hasControls;
-            img.set("lockRotation", true);
-            img.set("lockScalingX", true);
-            img.set("lockScalingY", true);
-            img.set("lockMovementX", true);
-            img.set("lockMovementY", true);
-          }
-          if (centerObject) {
-            _fabricObj.centerObject(img);
-          }
-          resolve(img);
-          _fabricObj.add(img);
-          _fabricObj.renderAll();
-        }, { crossOrigin: 'anonymous' });
+        const imgdefault = new Image();
+        imgdefault.src = url;
+        imgdefault.onload = () => {
+          fabric.Image.fromURL(
+            url,
+            (img) => {
+              img.set(imgConfig);
+              const scale = imgConfig.bboxWidth / imgdefault.width;
+              img.scale(scale);
+              if (!hasControls) {
+                img.hasControls = hasControls;
+                img.set("lockRotation", true);
+                img.set("lockScalingX", true);
+                img.set("lockScalingY", true);
+                img.set("lockMovementX", true);
+                img.set("lockMovementY", true);
+              }
+              if (centerObject) {
+                _fabricObj.centerObject(img);
+              }
+              if (isBackground) {
+                _fabricObj.setBackgroundImage(img);
+              }
+              resolve(img);
+              const imgInstance = _fabricObj.add(img); // 添加背景图
+              imgInstance.renderAll();
+            },
+            { crossOrigin: "anonymous" }
+          );
+        };
       } catch (e) {
         reject();
       }
@@ -179,13 +177,26 @@ let fabricObject = function (that, id = "editorCanvas") {
   };
 
   /* 创建文本 */
-  const _createTextBox = function (title, txtConfig, centerObject = false) {
+  const _createTextBox = function (
+    title,
+    txtConfig,
+    centerObject = false,
+    hasControls = true
+  ) {
     let textInstance = new fabric.Textbox(title, {
       ...txtConfig,
       splitByGrapheme: true,
     });
     if (centerObject) {
       _fabricObj.centerObject(textInstance);
+    }
+    if (!hasControls) {
+      textInstance.hasControls = hasControls;
+      textInstance.set("lockRotation", true);
+      textInstance.set("lockScalingX", true);
+      textInstance.set("lockScalingY", true);
+      textInstance.set("lockMovementX", true);
+      textInstance.set("lockMovementY", true);
     }
     _fabricObj.add(textInstance);
     _fabricObj.renderAll();
@@ -216,6 +227,7 @@ let fabricObject = function (that, id = "editorCanvas") {
   // });
   /* 鼠标监控相关--结束 */
 
+  let _config = {};
   //重新加载相关数据初始化
   let initialize = function () {
     if (isInitialStatus) {
@@ -227,14 +239,7 @@ let fabricObject = function (that, id = "editorCanvas") {
     _config.currentStateIndex = -1;
     _config.canvasState = [];
     isInitialStatus = true;
-    _fabricObj.loadFromJSON(
-      json,
-      () => {
-        firstAddToState(true);
-        undoFinish();
-      },
-      canvasLoadFromJsonTxtLoadFont
-    );
+    _fabricObj.loadFromJSON(json, () => {}, canvasLoadFromJsonTxtLoadFont);
   };
 
   //获取画布图片的base64
@@ -342,6 +347,7 @@ let fabricObject = function (that, id = "editorCanvas") {
 
   //加载字体成功事件回调
   let _loadFontSuccess = function (currentActive) {
+    console.log("加载字体成功");
     let text = currentActive.text;
     currentActive.set("text", "").setCoords();
     currentActive.set("text", text).setCoords();
