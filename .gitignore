@@ -22,5 +22,7 @@ pnpm-debug.log*
 *.sln
 *.sw?
 
+
+*.ttf
 [http] 
     postBuffer = 524288000
